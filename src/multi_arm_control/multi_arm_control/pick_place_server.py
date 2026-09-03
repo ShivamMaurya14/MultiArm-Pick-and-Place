@@ -57,10 +57,12 @@ class PickPlaceServer(Node):
         )
 
         # Gripper Action Client
+        ns = self.get_namespace().strip('/')
+        controller_name = f"{ns}_robotiq_gripper_controller/gripper_cmd" if ns else "robotiq_gripper_controller/gripper_cmd"
         self._gripper_client = ActionClient(
             self, 
             GripperCommand, 
-            'robotiq_gripper_controller/gripper_cmd',
+            controller_name,
             callback_group=self.cb_group
         )
 
