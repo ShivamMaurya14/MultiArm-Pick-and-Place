@@ -1,0 +1,10 @@
+# Goal
+string action       # "pick" or "place"
+string station_name # e.g. "A", "B", "C", "D"
+---
+# Result
+bool success
+string message
+---
+# Feedback
+string current_phase # e.g. "APPROACHING", "GRASPING", "RETREATING"

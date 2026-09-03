@@ -27,3 +27,10 @@ joint_trajectory_controller:
     - robot2_wrist_1_joint
     - robot2_wrist_2_joint
     - robot2_wrist_3_joint
+\n  - robot2_robotiq_gripper_controller
+robot2_robotiq_gripper_controller:
+  action_ns: gripper_cmd
+  type: GripperCommand
+  default: true
+  joints:
+    - robot2_finger_joint

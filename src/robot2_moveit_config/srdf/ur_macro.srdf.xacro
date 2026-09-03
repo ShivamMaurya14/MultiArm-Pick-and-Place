@@ -53,5 +53,37 @@
     <disable_collisions link1="${prefix}wrist_1_link" link2="${prefix}wrist_3_link" reason="Never" />
     <disable_collisions link1="${prefix}wrist_2_link" link2="${prefix}wrist_3_link" reason="Adjacent" />
 
-  </xacro:macro>
+  
+    <!-- GRIPPER GROUP -->
+    <group name="robot2_gripper">
+      <joint name="robot2_robotiq_base_joint"/>
+      <joint name="robot2_robotiq_140_base_joint"/>
+      <joint name="robot2_finger_joint"/>
+      <joint name="robot2_left_inner_knuckle_joint"/>
+      <joint name="robot2_left_inner_finger_joint"/>
+      <joint name="robot2_right_outer_knuckle_joint"/>
+      <joint name="robot2_right_inner_knuckle_joint"/>
+      <joint name="robot2_right_inner_finger_joint"/>
+    </group>
+
+    <!-- END EFFECTOR -->
+    <end_effector name="robot2_gripper" parent_link="robot2_tool0" group="robot2_gripper" parent_group="robot2_ur_manipulator"/>
+
+    <!-- DISABLE COLLISIONS FOR GRIPPER -->
+    <disable_collisions link1="robot2_wrist_3_link" link2="robot2_robotiq_base_link" reason="Adjacent" />
+    <disable_collisions link1="robot2_wrist_3_link" link2="robot2_robotiq_140_base_link" reason="Default" />
+    <disable_collisions link1="robot2_robotiq_base_link" link2="robot2_robotiq_140_base_link" reason="Adjacent" />
+    <disable_collisions link1="robot2_robotiq_140_base_link" link2="robot2_left_outer_knuckle" reason="Adjacent" />
+    <disable_collisions link1="robot2_robotiq_140_base_link" link2="robot2_right_outer_knuckle" reason="Adjacent" />
+    <disable_collisions link1="robot2_robotiq_140_base_link" link2="robot2_left_inner_knuckle" reason="Adjacent" />
+    <disable_collisions link1="robot2_robotiq_140_base_link" link2="robot2_right_inner_knuckle" reason="Adjacent" />
+    
+    <disable_collisions link1="robot2_left_outer_knuckle" link2="robot2_left_outer_finger" reason="Adjacent" />
+    <disable_collisions link1="robot2_right_outer_knuckle" link2="robot2_right_outer_finger" reason="Adjacent" />
+    <disable_collisions link1="robot2_left_inner_knuckle" link2="robot2_left_inner_finger" reason="Adjacent" />
+    <disable_collisions link1="robot2_right_inner_knuckle" link2="robot2_right_inner_finger" reason="Adjacent" />
+    
+    <disable_collisions link1="robot2_left_outer_finger" link2="robot2_left_inner_finger" reason="Default" />
+    <disable_collisions link1="robot2_right_outer_finger" link2="robot2_right_inner_finger" reason="Default" />
+</xacro:macro>
 </robot>

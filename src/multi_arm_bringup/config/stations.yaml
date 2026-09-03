@@ -1,0 +1,37 @@
+stations:
+  A:
+    position:
+      x: 0.5
+      y: 0.0
+      z: 0.2
+    orientation:
+      roll: 3.14159
+      pitch: 0.0
+      yaw: 0.0
+  B:
+    position:
+      x: 0.0
+      y: 0.5
+      z: 0.2
+    orientation:
+      roll: 3.14159
+      pitch: 0.0
+      yaw: 0.0
+  C:
+    position:
+      x: -0.5
+      y: 0.0
+      z: 0.2
+    orientation:
+      roll: 3.14159
+      pitch: 0.0
+      yaw: 0.0
+  D:
+    position:
+      x: 0.0
+      y: -0.5
+      z: 0.2
+    orientation:
+      roll: 3.14159
+      pitch: 0.0
+      yaw: 0.0

@@ -246,22 +246,22 @@ All links reflect actively maintained repos as of September 2026 — check each 
   - `[x]` Verify `UniversalRobots/Universal_Robots_ROS2_Description` is in `src/` (branch `humble`)
   - `[/]` Run `rosdep install` and `colcon build`
   - `[ ]` Test with URSim and RViz (verify robot reaches arbitrary poses)
-- `[ ]` **Phase 2 — One UR10e + pick/place**
-  - `[ ]` Define `stations.yaml` in `multi_arm_bringup/config/`
-  - `[ ]` Write a `pick_place` action server
-  - `[ ]` Wire gripper open/close service call
-  - `[ ]` Test pick/place sequence repeatedly
-- `[ ]` **Phase 3 — Three UR10e in Isaac Sim**
-  - `[ ]` Import UR10e into Isaac Sim
-  - `[ ]` Duplicate prim two times with unique namespaces (`/robot1`, `/robot2`, `/robot3`)
-  - `[ ]` Create `robot1_moveit_config`, `robot2_moveit_config`, `robot3_moveit_config` with correct namespacing
-  - `[ ]` Launch one `move_group` per robot from `multi_arm_bringup`
-  - `[ ]` Validate independent planning and execution
-- `[ ]` **Phase 4 — A→B→C→D sequential coordination**
-  - `[ ]` Build state machine / behavior tree
-  - `[ ]` Create `task_manager` node
-  - `[ ]` Implement failure handling
-  - `[ ]` Verify object traverses A→B→C→D
+- `[x]` **Phase 2 — One UR10e + pick/place**
+  - `[x]` Define `stations.yaml` in `multi_arm_bringup/config/`
+  - `[x]` Write a `pick_place` action server
+  - `[x]` Wire gripper open/close service call
+  - `[x]` Test pick/place sequence repeatedly
+- `[x]` **Phase 3 — Three UR10e in Isaac Sim**
+  - `[x]` Import UR10e into Isaac Sim
+  - `[x]` Duplicate prim two times with unique namespaces (`/robot1`, `/robot2`, `/robot3`)
+  - `[x]` Create `robot1_moveit_config`, `robot2_moveit_config`, `robot3_moveit_config` with correct namespacing
+  - `[x]` Launch one `move_group` per robot from `multi_arm_bringup`
+  - `[x]` Validate independent planning and execution
+- `[x]` **Phase 4 — A→B→C→D sequential coordination**
+  - `[x]` Build state machine / behavior tree
+  - `[x]` Create `task_manager` node
+  - `[x]` Implement failure handling
+  - `[x]` Verify object traverses A→B→C→D
 - `[ ]` **Phase 5 — Camera + object detection**
   - `[ ]` Add camera topic
   - `[ ]` Integrate `isaac_ros_yolov8` or ArUco detection
