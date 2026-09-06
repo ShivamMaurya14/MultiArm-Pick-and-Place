@@ -1,0 +1,275 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="multi_ur10e_workcell">
+
+  <!-- Include UR10e Robot Macro -->
+  <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
+
+  <!-- Include Robotiq 2F-140 Gripper Macro -->
+  <xacro:include filename="$(find robotiq_description)/urdf/robotiq_2f_140_macro.urdf.xacro" />
+
+  <!-- Global World link -->
+  <link name="world"/>
+
+  <!-- ========================================== -->
+  <!-- Materials for Industrial Workcell Styling  -->
+  <!-- ========================================== -->
+  <material name="floor_dark">
+    <color rgba="0.15 0.17 0.20 1.0"/>
+  </material>
+
+  <material name="cell_border_yellow">
+    <color rgba="0.95 0.75 0.05 1.0"/>
+  </material>
+
+  <material name="pedestal_steel">
+    <color rgba="0.28 0.30 0.35 1.0"/>
+  </material>
+
+  <material name="table_top_mat">
+    <color rgba="0.35 0.38 0.42 1.0"/>
+  </material>
+
+  <material name="station_a_blue">
+    <color rgba="0.10 0.50 0.90 1.0"/>
+  </material>
+
+  <material name="station_relay_orange">
+    <color rgba="0.98 0.55 0.05 1.0"/>
+  </material>
+
+  <material name="station_d_purple">
+    <color rgba="0.60 0.15 0.75 1.0"/>
+  </material>
+
+  <material name="workpiece_cube_mat">
+    <color rgba="0.10 0.85 0.45 1.0"/>
+  </material>
+
+  <!-- ========================================== -->
+  <!-- Enlarged Ground Floor Platform (2.4m x 5.6m)-->
+  <!-- ========================================== -->
+  <link name="ground_platform">
+    <visual>
+      <origin xyz="0.40 1.60 -0.015" rpy="0 0 0"/>
+      <geometry>
+        <box size="2.40 5.60 0.03"/>
+      </geometry>
+      <material name="floor_dark"/>
+    </visual>
+    <collision>
+      <origin xyz="0.40 1.60 -0.015" rpy="0 0 0"/>
+      <geometry>
+        <box size="2.40 5.60 0.03"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="world_to_ground_platform" type="fixed">
+    <parent link="world"/>
+    <child link="ground_platform"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ========================================== -->
+  <!-- Visual Cell Demarcation Lines (Safety Grid)-->
+  <!-- ========================================== -->
+  <!-- Boundary Line Between Cell 1 and Cell 2 (Y = 0.80) -->
+  <link name="cell_divider_1_2">
+    <visual>
+      <origin xyz="0.40 0.80 0.001" rpy="0 0 0"/>
+      <geometry>
+        <box size="2.30 0.04 0.002"/>
+      </geometry>
+      <material name="cell_border_yellow"/>
+    </visual>
+  </link>
+  <joint name="world_to_cell_divider_1_2" type="fixed">
+    <parent link="world"/>
+    <child link="cell_divider_1_2"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Boundary Line Between Cell 2 and Cell 3 (Y = 2.40) -->
+  <link name="cell_divider_2_3">
+    <visual>
+      <origin xyz="0.40 2.40 0.001" rpy="0 0 0"/>
+      <geometry>
+        <box size="2.30 0.04 0.002"/>
+      </geometry>
+      <material name="cell_border_yellow"/>
+    </visual>
+  </link>
+  <joint name="world_to_cell_divider_2_3" type="fixed">
+    <parent link="world"/>
+    <child link="cell_divider_2_3"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Front Safety Line along X = 1.40 -->
+  <link name="front_safety_line">
+    <visual>
+      <origin xyz="1.45 1.60 0.001" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.04 5.40 0.002"/>
+      </geometry>
+      <material name="cell_border_yellow"/>
+    </visual>
+  </link>
+  <joint name="world_to_front_safety_line" type="fixed">
+    <parent link="world"/>
+    <child link="front_safety_line"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ========================================== -->
+  <!-- Station Macro (Pillar, Top, Target Zone)   -->
+  <!-- ========================================== -->
+  <xacro:macro name="workcell_station" params="name x y z_top color_mat">
+    <link name="${name}_table">
+      <!-- Pedestal Stand -->
+      <visual>
+        <origin xyz="0 0 ${z_top / 2.0}" rpy="0 0 0"/>
+        <geometry>
+          <cylinder radius="0.12" length="${z_top}"/>
+        </geometry>
+        <material name="pedestal_steel"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 ${z_top / 2.0}" rpy="0 0 0"/>
+        <geometry>
+          <cylinder radius="0.12" length="${z_top}"/>
+        </geometry>
+      </collision>
+      <!-- Circular Workstation Top -->
+      <visual>
+        <origin xyz="0 0 ${z_top}" rpy="0 0 0"/>
+        <geometry>
+          <cylinder radius="0.24" length="0.04"/>
+        </geometry>
+        <material name="${color_mat}"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 ${z_top}" rpy="0 0 0"/>
+        <geometry>
+          <cylinder radius="0.24" length="0.04"/>
+        </geometry>
+      </collision>
+      <!-- Target Placement Ring Indicator -->
+      <visual>
+        <origin xyz="0 0 ${z_top + 0.021}" rpy="0 0 0"/>
+        <geometry>
+          <cylinder radius="0.08" length="0.002"/>
+        </geometry>
+        <material name="table_top_mat"/>
+      </visual>
+    </link>
+
+    <joint name="world_to_${name}_table" type="fixed">
+      <parent link="world"/>
+      <child link="${name}_table"/>
+      <origin xyz="${x} ${y} 0" rpy="0 0 0"/>
+    </joint>
+  </xacro:macro>
+
+  <!-- Station A (WS1 - Source Table in front of Robot 1 at X=0.70, Y=0.0) -->
+  <xacro:workcell_station name="station_a" x="0.70" y="0.00" z_top="0.20" color_mat="station_a_blue"/>
+
+
+  <!-- Station B (WS2 - Relay 1 Handoff Buffer between Robot 1 & 2 at X=0.70, Y=0.80) -->
+  <xacro:workcell_station name="station_b" x="0.70" y="0.80" z_top="0.20" color_mat="station_relay_orange"/>
+
+  <!-- Station C (WS3 - Relay 2 Handoff Buffer between Robot 2 & 3 at X=0.70, Y=2.40) -->
+  <xacro:workcell_station name="station_c" x="0.70" y="2.40" z_top="0.20" color_mat="station_relay_orange"/>
+
+  <!-- Station D (WS4 - Destination Dropoff Table in front of Robot 3 at X=0.70, Y=3.20) -->
+  <xacro:workcell_station name="station_d" x="0.70" y="3.20" z_top="0.20" color_mat="station_d_purple"/>
+
+  <!-- ========================================== -->
+  <!-- Macro for Robot Instance (UR10e + Gripper) -->
+  <!-- ========================================== -->
+  <xacro:macro name="workcell_robot" params="robot_name prefix origin_xyz origin_rpy">
+    <!-- Heavy-Duty Mounting Pedestal Stand -->
+    <link name="${prefix}pedestal">
+      <visual>
+        <origin xyz="0 0 0.10" rpy="0 0 0"/>
+        <geometry>
+          <cylinder radius="0.16" length="0.20"/>
+        </geometry>
+        <material name="pedestal_steel"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0.10" rpy="0 0 0"/>
+        <geometry>
+          <cylinder radius="0.16" length="0.20"/>
+        </geometry>
+      </collision>
+      <!-- Base Mounting Flange -->
+      <visual>
+        <origin xyz="0 0 0.015" rpy="0 0 0"/>
+        <geometry>
+          <cylinder radius="0.22" length="0.03"/>
+        </geometry>
+        <material name="floor_dark"/>
+      </visual>
+    </link>
+
+    <joint name="world_to_${prefix}pedestal" type="fixed">
+      <parent link="world"/>
+      <child link="${prefix}pedestal"/>
+      <origin xyz="${origin_xyz}" rpy="${origin_rpy}"/>
+    </joint>
+
+    <!-- UR10e Arm mounted on top of pedestal (Z=0.20m) -->
+    <!-- Upright / Ready posture with gripper facing workspace -->
+    <xacro:ur_robot
+      name="${robot_name}"
+      tf_prefix="${prefix}"
+      parent="${prefix}pedestal"
+      joint_limits_parameters_file="$(find ur_description)/config/ur10e/joint_limits.yaml"
+      kinematics_parameters_file="$(find ur_description)/config/ur10e/default_kinematics.yaml"
+      physical_parameters_file="$(find ur_description)/config/ur10e/physical_parameters.yaml"
+      visual_parameters_file="$(find ur_description)/config/ur10e/visual_parameters.yaml"
+      safety_limits="false"
+      safety_pos_margin="0.15"
+      safety_k_position="20"
+      use_fake_hardware="true"
+      fake_sensor_commands="false"
+      sim_gazebo="false"
+      sim_ignition="false"
+      headless_mode="false"
+      initial_positions="${dict(shoulder_pan_joint=-0.2514,shoulder_lift_joint=-1.8000,elbow_joint=1.5000,wrist_1_joint=-1.2700,wrist_2_joint=-1.5708,wrist_3_joint=0.0)}"
+      use_tool_communication="false"
+      robot_ip="0.0.0.0"
+      non_blocking_read="true"
+      keep_alive_count="2">
+      <origin xyz="0 0 0.20" rpy="0 0 0" />
+    </xacro:ur_robot>
+
+    <!-- Robotiq 2F-140 Gripper attached to tool0 -->
+    <xacro:robotiq_gripper 
+      name="${prefix}RobotiqGripperHardwareInterface" 
+      prefix="${prefix}" 
+      parent="${prefix}tool0" 
+      use_fake_hardware="true">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+    </xacro:robotiq_gripper>
+
+    <!-- Calibrated Tool Center Point (TCP) -->
+    <link name="${prefix}tcp" />
+    <joint name="${prefix}tool0_to_tcp" type="fixed">
+      <parent link="${prefix}tool0" />
+      <child link="${prefix}tcp" />
+      <origin xyz="0 0 0.23" rpy="0 0 0" />
+    </joint>
+  </xacro:macro>
+
+  <!-- Instantiate Robot 1 at Y=0.0 (Cell 1) -->
+  <xacro:workcell_robot robot_name="robot1" prefix="robot1_" origin_xyz="0.0 0.0 0.0" origin_rpy="0 0 0"/>
+
+  <!-- Instantiate Robot 2 at Y=1.6 (Cell 2) -->
+  <xacro:workcell_robot robot_name="robot2" prefix="robot2_" origin_xyz="0.0 1.6 0.0" origin_rpy="0 0 0"/>
+
+  <!-- Instantiate Robot 3 at Y=3.2 (Cell 3) -->
+  <xacro:workcell_robot robot_name="robot3" prefix="robot3_" origin_xyz="0.0 3.2 0.0" origin_rpy="0 0 0"/>
+
+</robot>

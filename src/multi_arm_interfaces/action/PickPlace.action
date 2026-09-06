@@ -1,10 +1,24 @@
+# ==============================================================================
+# PickPlace Action Interface
+# Handles pick & place operations for fixed stations or dynamic vision poses
+# ==============================================================================
+
 # Goal
-string action       # "pick" or "place"
-string station_name # e.g. "A", "B", "C", "D"
+string action                                 # "pick", "place", or "transfer"
+string station_name                           # Predefined station name: e.g. "A", "B", "C", "D"
+bool use_custom_pose                          # If true, overrides station_name with custom_target_pose
+geometry_msgs/PoseStamped custom_target_pose  # Dynamic target pose (from Isaac ROS YOLOv8 / perception)
+float64 grasp_width                           # Gripper opening width in meters (0.07m = full open for 2F-140)
+
 ---
 # Result
-bool success
-string message
+bool success                                  # True if entire motion and grasp/release succeeded
+string message                                # Diagnostics or error description
+float64 execution_time                        # Total execution time in seconds
+geometry_msgs/Pose final_pose                 # End-effector pose at completion
+
 ---
 # Feedback
-string current_phase # e.g. "APPROACHING", "GRASPING", "RETREATING"
+string current_phase                          # "APPROACHING", "DESCENDING", "GRASPING", "RELEASING", "RETREATING"
+float32 progress_percent                      # Operation progress percentage (0.0 to 100.0)
+geometry_msgs/Pose current_pose               # Real-time tool center point pose

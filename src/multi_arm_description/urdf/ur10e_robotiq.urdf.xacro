@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
-<robot xmlns:xacro="http://wiki.ros.org/xacro" name="$(arg name)">
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="ur10e_robotiq">
   
   <!-- Robot parameters -->
-  <xacro:arg name="name" default="ur"/>
+  <xacro:arg name="name" default="ur10e_robotiq"/>
   <xacro:arg name="ur_type" default="ur10e"/>
   <xacro:arg name="prefix" default="" />
 
-  <!-- UR10e parameters (matching standard ur.urdf.xacro) -->
+  <!-- UR10e parameters (matching standard Universal Robots ROS 2 description) -->
   <xacro:arg name="joint_limit_params" default="$(find ur_description)/config/$(arg ur_type)/joint_limits.yaml"/>
   <xacro:arg name="kinematics_params" default="$(find ur_description)/config/$(arg ur_type)/default_kinematics.yaml"/>
   <xacro:arg name="physical_params" default="$(find ur_description)/config/$(arg ur_type)/physical_parameters.yaml"/>
@@ -16,13 +16,15 @@
   <xacro:arg name="safety_pos_margin" default="0.15"/>
   <xacro:arg name="safety_k_position" default="20"/>
   
-  <!-- ROS 2 control params -->
+  <!-- ROS 2 control & simulation parameters -->
   <xacro:arg name="use_fake_hardware" default="false" />
+  <xacro:arg name="use_mock_hardware" default="false" />
   <xacro:arg name="fake_sensor_commands" default="false" />
   <xacro:arg name="sim_gazebo" default="false" />
   <xacro:arg name="sim_ignition" default="false" />
   <xacro:arg name="simulation_controllers" default="" />
 
+  <!-- Driver / hardware connection params -->
   <xacro:arg name="headless_mode" default="false" />
   <xacro:arg name="robot_ip" default="0.0.0.0" />
   <xacro:arg name="script_filename" default=""/>
@@ -37,16 +39,16 @@
   <xacro:arg name="non_blocking_read" default="true"/>
   <xacro:arg name="keep_alive_count" default="2"/>
 
-  <!-- Include UR10e -->
+  <!-- Include UR10e Robot Macro -->
   <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
 
-  <!-- Include Robotiq 2F-140 -->
+  <!-- Include Robotiq 2F-140 Gripper Macro -->
   <xacro:include filename="$(find robotiq_description)/urdf/robotiq_2f_140_macro.urdf.xacro" />
 
-  <!-- create link fixed to the "world" -->
+  <!-- World coordinate frame -->
   <link name="world" />
 
-  <!-- arm -->
+  <!-- Instantiate UR10e Arm -->
   <xacro:ur_robot
     name="$(arg name)"
     tf_prefix="$(arg prefix)"
@@ -64,7 +66,7 @@
     sim_gazebo="$(arg sim_gazebo)"
     sim_ignition="$(arg sim_ignition)"
     headless_mode="$(arg headless_mode)"
-    initial_positions="${dict(shoulder_pan_joint=0.0,shoulder_lift_joint=-1.57,elbow_joint=0.0,wrist_1_joint=-1.57,wrist_2_joint=0.0,wrist_3_joint=0.0)}"
+    initial_positions="${dict(shoulder_pan_joint=-0.2514,shoulder_lift_joint=-1.8000,elbow_joint=1.5000,wrist_1_joint=-1.2700,wrist_2_joint=-1.5708,wrist_3_joint=0.0)}"
     use_tool_communication="false"
     tool_voltage="0"
     tool_parity="0"
@@ -89,13 +91,22 @@
     <origin xyz="0 0 0" rpy="0 0 0" />
   </xacro:ur_robot>
 
-  <!-- gripper -->
+  <!-- Instantiate Robotiq 2F-140 Gripper attached to Arm tool0 -->
   <xacro:robotiq_gripper 
-    name="RobotiqGripperHardwareInterface" 
+    name="$(arg prefix)RobotiqGripperHardwareInterface" 
     prefix="$(arg prefix)" 
     parent="$(arg prefix)tool0" 
     use_fake_hardware="$(arg use_fake_hardware)">
     <origin xyz="0 0 0" rpy="0 0 0" />
   </xacro:robotiq_gripper>
+
+  <!-- Tool Center Point (TCP) Link for precise grasping & MoveIt planning -->
+  <link name="$(arg prefix)tcp" />
+  <joint name="$(arg prefix)tool0_to_tcp" type="fixed">
+    <parent link="$(arg prefix)tool0" />
+    <child link="$(arg prefix)tcp" />
+    <!-- 0.23m Z-offset accounts for the Robotiq 2F-140 finger tip grasping center -->
+    <origin xyz="0 0 0.23" rpy="0 0 0" />
+  </joint>
 
 </robot>
