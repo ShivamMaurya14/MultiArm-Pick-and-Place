@@ -1,0 +1,8 @@
+initial_positions:
+  robot1_shoulder_pan_joint: 0.0
+  robot1_shoulder_lift_joint: -1.5707
+  robot1_elbow_joint: 0.0
+  robot1_wrist_1_joint: -1.5707
+  robot1_wrist_2_joint: 0.0
+  robot1_wrist_3_joint: 0.0
+  robot1_finger_joint: 0.0

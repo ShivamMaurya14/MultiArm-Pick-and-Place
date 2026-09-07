@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="ur10e_robotiq">
+  <xacro:arg name="name" default="ur10e_robotiq"/>
+  <xacro:arg name="prefix" default="robot3_"/>
+
+  <!-- Planning Groups -->
+  <group name="$(arg prefix)manipulator">
+    <chain base_link="$(arg prefix)base_link" tip_link="$(arg prefix)tcp" />
+  </group>
+
+  <group name="$(arg prefix)gripper">
+    <joint name="$(arg prefix)finger_joint" />
+  </group>
+
+  <!-- Predefined Named States for Arm -->
+  <group_state name="$(arg prefix)home" group="$(arg prefix)manipulator">
+    <joint name="$(arg prefix)elbow_joint" value="0.0" />
+    <joint name="$(arg prefix)shoulder_lift_joint" value="-1.5707" />
+    <joint name="$(arg prefix)shoulder_pan_joint" value="0.0" />
+    <joint name="$(arg prefix)wrist_1_joint" value="0.0" />
+    <joint name="$(arg prefix)wrist_2_joint" value="0.0" />
+    <joint name="$(arg prefix)wrist_3_joint" value="0.0" />
+  </group_state>
+
+  <group_state name="$(arg prefix)ready" group="$(arg prefix)manipulator">
+    <joint name="$(arg prefix)elbow_joint" value="1.5707" />
+    <joint name="$(arg prefix)shoulder_lift_joint" value="-1.5707" />
+    <joint name="$(arg prefix)shoulder_pan_joint" value="0.0" />
+    <joint name="$(arg prefix)wrist_1_joint" value="-1.5707" />
+    <joint name="$(arg prefix)wrist_2_joint" value="-1.5707" />
+    <joint name="$(arg prefix)wrist_3_joint" value="0.0" />
+  </group_state>
+
+  <!-- Predefined Named States for Gripper -->
+  <group_state name="$(arg prefix)open" group="$(arg prefix)gripper">
+    <joint name="$(arg prefix)finger_joint" value="0.0" />
+  </group_state>
+
+  <group_state name="$(arg prefix)close" group="$(arg prefix)gripper">
+    <joint name="$(arg prefix)finger_joint" value="0.7" />
+  </group_state>
+
+  <!-- End Effector Definition -->
+  <end_effector name="$(arg prefix)gripper" parent_link="$(arg prefix)tcp" group="$(arg prefix)gripper" parent_group="$(arg prefix)manipulator" />
+
+  <!-- Disable Collisions - UR10e internal -->
+  <disable_collisions link1="$(arg prefix)base_link" link2="$(arg prefix)base_link_inertia" reason="Adjacent" />
+  <disable_collisions link1="$(arg prefix)base_link_inertia" link2="$(arg prefix)shoulder_link" reason="Adjacent" />
+  <disable_collisions link1="$(arg prefix)tool0" link2="$(arg prefix)wrist_1_link" reason="Never" />
+  <disable_collisions link1="$(arg prefix)tool0" link2="$(arg prefix)wrist_2_link" reason="Never" />
+  <disable_collisions link1="$(arg prefix)tool0" link2="$(arg prefix)wrist_3_link" reason="Adjacent" />
+  <disable_collisions link1="$(arg prefix)forearm_link" link2="$(arg prefix)upper_arm_link" reason="Adjacent" />
+  <disable_collisions link1="$(arg prefix)forearm_link" link2="$(arg prefix)wrist_1_link" reason="Adjacent" />
+  <disable_collisions link1="$(arg prefix)shoulder_link" link2="$(arg prefix)upper_arm_link" reason="Adjacent" />
+  <disable_collisions link1="$(arg prefix)wrist_1_link" link2="$(arg prefix)wrist_2_link" reason="Adjacent" />
+  <disable_collisions link1="$(arg prefix)wrist_1_link" link2="$(arg prefix)wrist_3_link" reason="Never" />
+  <disable_collisions link1="$(arg prefix)wrist_2_link" link2="$(arg prefix)wrist_3_link" reason="Adjacent" />
+
+  <!-- Disable Collisions - Arm to Gripper Interface -->
+  <disable_collisions link1="$(arg prefix)tool0" link2="$(arg prefix)robotiq_base_link" reason="Adjacent" />
+  <disable_collisions link1="$(arg prefix)tool0" link2="$(arg prefix)robotiq_140_base_link" reason="Adjacent" />
+  <disable_collisions link1="$(arg prefix)wrist_3_link" link2="$(arg prefix)robotiq_base_link" reason="Adjacent" />
+  <disable_collisions link1="$(arg prefix)wrist_3_link" link2="$(arg prefix)robotiq_140_base_link" reason="Adjacent" />
+  <disable_collisions link1="$(arg prefix)wrist_2_link" link2="$(arg prefix)robotiq_base_link" reason="Never" />
+  <disable_collisions link1="$(arg prefix)wrist_2_link" link2="$(arg prefix)robotiq_140_base_link" reason="Never" />
+
+  <!-- Disable Collisions - Robotiq Gripper Internal Links -->
+  <disable_collisions link1="$(arg prefix)robotiq_base_link" link2="$(arg prefix)robotiq_140_base_link" reason="Adjacent" />
+  <disable_collisions link1="$(arg prefix)robotiq_140_base_link" link2="$(arg prefix)left_outer_knuckle" reason="Adjacent" />
+  <disable_collisions link1="$(arg prefix)robotiq_140_base_link" link2="$(arg prefix)right_outer_knuckle" reason="Adjacent" />
+  <disable_collisions link1="$(arg prefix)robotiq_140_base_link" link2="$(arg prefix)left_inner_knuckle" reason="Adjacent" />
+  <disable_collisions link1="$(arg prefix)robotiq_140_base_link" link2="$(arg prefix)right_inner_knuckle" reason="Adjacent" />
+  <disable_collisions link1="$(arg prefix)left_outer_knuckle" link2="$(arg prefix)left_outer_finger" reason="Adjacent" />
+  <disable_collisions link1="$(arg prefix)right_outer_knuckle" link2="$(arg prefix)right_outer_finger" reason="Adjacent" />
+  <disable_collisions link1="$(arg prefix)left_inner_knuckle" link2="$(arg prefix)left_inner_finger" reason="Adjacent" />
+  <disable_collisions link1="$(arg prefix)right_inner_knuckle" link2="$(arg prefix)right_inner_finger" reason="Adjacent" />
+  <disable_collisions link1="$(arg prefix)left_outer_finger" link2="$(arg prefix)left_inner_finger" reason="Adjacent" />
+  <disable_collisions link1="$(arg prefix)right_outer_finger" link2="$(arg prefix)right_inner_finger" reason="Adjacent" />
+
+</robot>
