@@ -1,36 +1,43 @@
 stations:
+  # Station A (WS1): Workpiece source with green cube (in front of Robot 1 at Y=0.0)
   A:
     position:
-      x: 0.5
-      y: 0.0
-      z: 0.2
+      x: 0.70
+      y: 0.00
+      z: 0.25
     orientation:
       roll: 3.14159
       pitch: 0.0
       yaw: 0.0
+
+  # Station B (WS2): Relay 1 handoff buffer between Robot 1 (Y=0.0) and Robot 2 (Y=1.6)
   B:
     position:
-      x: 0.0
-      y: 0.5
-      z: 0.2
+      x: 0.70
+      y: 0.80
+      z: 0.25
     orientation:
       roll: 3.14159
       pitch: 0.0
       yaw: 0.0
+
+  # Station C (WS3): Relay 2 handoff buffer between Robot 2 (Y=1.6) and Robot 3 (Y=3.2)
   C:
     position:
-      x: -0.5
-      y: 0.0
-      z: 0.2
+      x: 0.70
+      y: 2.40
+      z: 0.25
     orientation:
       roll: 3.14159
       pitch: 0.0
       yaw: 0.0
+
+  # Station D (WS4): Final dropoff destination table (in front of Robot 3 at Y=3.2)
   D:
     position:
-      x: 0.0
-      y: -0.5
-      z: 0.2
+      x: 0.70
+      y: 3.20
+      z: 0.25
     orientation:
       roll: 3.14159
       pitch: 0.0

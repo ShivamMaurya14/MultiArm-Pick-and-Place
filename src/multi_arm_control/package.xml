@@ -5,10 +5,11 @@
   <version>0.0.0</version>
   <description>Control nodes for Pick/Place action server and task manager</description>
   <maintainer email="user@todo.todo">User</maintainer>
-  <license>TODO: License declaration</license>
+  <license>Apache-2.0</license>
 
   <depend>rclpy</depend>
-  <depend>moveit_py</depend>
+  <depend>control_msgs</depend>
+  <depend>geometry_msgs</depend>
   <depend>multi_arm_interfaces</depend>
 
   <export>
