@@ -5,15 +5,20 @@
   <version>0.0.0</version>
   <description>Bringup package for multiple UR10e arms in Isaac Sim</description>
   <maintainer email="user@todo.todo">User</maintainer>
-  <license>TODO: License declaration</license>
+  <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
+  <exec_depend>multi_arm_description</exec_depend>
+  <exec_depend>multi_arm_control</exec_depend>
+  <exec_depend>multi_arm_interfaces</exec_depend>
   <exec_depend>robot1_moveit_config</exec_depend>
   <exec_depend>robot2_moveit_config</exec_depend>
   <exec_depend>robot3_moveit_config</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
