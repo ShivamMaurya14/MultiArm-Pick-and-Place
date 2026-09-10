@@ -68,31 +68,45 @@ source install/setup.bash
 xacro src/multi_arm_description/urdf/ur10e_robotiq.urdf.xacro > /tmp/ur10e_robotiq.urdf
 ```
 
-### Step B: Import Robot Model into Isaac Sim
-1. Launch **Isaac Sim** (v4.x / 4.5 / 5.x / 6.0+).
-2. Go to **Isaac Utils → Workflows → URDF Importer**.
-3. Settings:
-   * **Input File:** `/tmp/ur10e_robotiq.urdf`
-   * **Fix Base Link:** $\checkmark$ (Checked)
-   * **Drive Type:** Position
-   * **Import Target Path:** `/World/UR10e`
-4. Click **Import**.
+### Step B: Import Robot Model into Isaac Sim (v4.x, v5.x, v6.0.1+)
+1. Launch **Isaac Sim**.
+2. Go to **Isaac Utils → Workflows → URDF Importer** *(or **Tools → Robotics → URDF Importer** in Kit 106+)*.
+3. In the top mode selector, choose **`Import`** (Standard URDF Import mode).
 
-### Step C: Execute Automated Workcell Spawner
-1. In Isaac Sim, open **Window → Script Editor**.
+#### ⚙️ Settings to Choose in the URDF Importer Window:
+
+| Configuration Field | Recommended Value / Setting | Purpose |
+| :--- | :--- | :--- |
+| **Input File** | `/tmp/ur10e_robotiq.urdf` | Path to generated standalone URDF |
+| **Target Prim Path / USD Output** | `/World/UR10e` | Imports the template robot prim under `/World/UR10e` |
+| **Fix Base Link** | `Checked` ✅ | Anchors the base to prevent the robot from falling |
+| **Drive Type** | `Position` | Enables position-controlled joint drives |
+| **Colliders (Collision Mesh)** | `Convex Decomposition` *(or Convex Hull)* | Accurate physical collisions on arm & fingers |
+| **Self Collision** | `Unchecked` ⬜ | Prevents internal link self-collision overhead |
+| **Merge Fixed Joints** | `Checked` ✅ | Optimizes kinematics tree for fixed gripper links |
+| **ROS Package Search Paths** | `.../MultiArm-Pick-and-Place/src` | Resolves `package://` meshes (`ur_description`, `robotiq_description`) |
+
+4. Click the **`Import`** button at the bottom.
+5. In the **Stage Tree** (top-right), select **`/World/UR10e`** and press **`F`** in the 3D viewport to center the camera on the robot.
+
+---
+
+### Step C: 🚀 Step to Spawn All 3 Robots & Full Workcell
+
+*(Note: Importing URDF creates the single robot template `/World/UR10e`. To automatically instantiate all 3 robots, steel pedestals, 4 station tables, and dynamic workpiece, execute the procedural script):*
+
+1. In Isaac Sim, open top menu: **Window → Script Editor**.
 2. Open or paste [`src/ur_simulation/scripts/spawn_multi_ur10e.py`](file:///Users/shivammaurya/Desktop/ros2_ws/nextup/multi_arm_ws/MultiArm-Pick-and-Place/src/ur_simulation/scripts/spawn_multi_ur10e.py).
-3. Click **Run**.
-4. The script automatically creates:
-   * Ground platform ($2.4\text{m} \times 5.6\text{m}$) with yellow cell divider lines.
-   * 3 Steel mounting pedestals ($Z=0.20\text{m}$).
-   * 4 Station tables with physical collision geometries and placement rings.
-   * High-friction physics material ($\mu_s=1.2, \mu_d=0.9$) to prevent workpiece slipping.
-   * Dynamic emerald green workpiece cube ($0.15\text{kg}$) at $(0.70, 0.00, 0.245)$.
-   * Instantiates `robot1`, `robot2`, `robot3` on pedestals.
-   * Configures OmniGraph Action Graphs for `/clock`, `/{namespace}/joint_states`, and `/{namespace}/joint_commands`.
-
-### Step D: Start Physics & ROS 2 Bridge
-Click the **PLAY (▶)** button on the Isaac Sim left toolbar.
+3. Click **Run** (or press `Ctrl + Enter`).
+4. **What the Script Automatically Builds:**
+   * **Physics Scene & Contact Materials:** Defines PhysX 5 gravity ($-9.81\text{ m/s}^2$) and high-friction contact material ($\mu_s=1.2, \mu_d=0.9$).
+   * **Ground Platform & Demarcation Grid:** $2.4\text{m} \times 5.6\text{m}$ floor with yellow cell boundary lines.
+   * **3 Steel Mounting Pedestals:** $0.20\text{m}$ elevated pedestals for `robot1` ($Y=0.0$), `robot2` ($Y=1.6$), and `robot3` ($Y=3.2$).
+   * **4 Station Tables:** Station A (Blue Source), Station B (Orange Buffer 1), Station C (Orange Buffer 2), Station D (Purple Destination).
+   * **Dynamic Workpiece Cube:** $60\text{mm} \times 60\text{mm} \times 50\text{mm}$ emerald green dynamic rigid-body cube ($0.15\text{kg}$) spawned at Station A $(0.70, 0.00, 0.245)$.
+   * **Instantiates the 3 Robots:** Duplicates the template into `/World/robot1`, `/World/robot2`, and `/World/robot3` at pedestal heights ($Z=0.20\text{m}$).
+   * **OmniGraph ROS 2 Bridges:** Configures `/clock`, `/{namespace}/joint_states`, and `/{namespace}/joint_commands` action graphs.
+5. Press the **PLAY (▶)** button on the left toolbar in Isaac Sim.
 
 ---
 

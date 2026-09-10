@@ -227,22 +227,34 @@ source install/setup.bash
 ros2 run multi_arm_control task_manager
 ```
 
-### 3. Run in NVIDIA Isaac Sim Mode
+### 3. Run in NVIDIA Isaac Sim Mode (v4.x, v5.x, v6.0.1+)
 ```bash
 # Step A: Export URDF (in ROS 2 terminal)
 source /opt/ros/jazzy/setup.bash
 source install/setup.bash
 xacro src/multi_arm_description/urdf/ur10e_robotiq.urdf.xacro > /tmp/ur10e_robotiq.urdf
+```
 
-# Step B: In Isaac Sim GUI
-# 1. Isaac Utils -> Workflows -> URDF Importer -> Import /tmp/ur10e_robotiq.urdf to /World/UR10e (Fix Base Link: Checked)
-# 2. Window -> Script Editor -> Open src/ur_simulation/scripts/spawn_multi_ur10e.py -> Click Run
-# 3. Press PLAY (▶) in Isaac Sim
+**Step B: In Isaac Sim GUI (URDF Importer Settings):**
+1. Navigate to **Isaac Utils → Workflows → URDF Importer** *(or **Tools → Robotics → URDF Importer**)*.
+2. Select **`Import`** mode with:
+   - **Input File:** `/tmp/ur10e_robotiq.urdf`
+   - **Target Prim Path / USD Output:** `/World/UR10e`
+   - **Fix Base Link:** `Checked` ✅ | **Drive Type:** `Position`
+   - **Colliders:** `Convex Decomposition` | **Self Collision:** `Unchecked` ⬜
+   - **ROS Package Search Paths:** Add `.../MultiArm-Pick-and-Place/src`
+3. Click **Import** $\rightarrow$ Select `/World/UR10e` and press **`F`** to focus camera.
 
-# Step C (Terminal 1): Launch ROS 2 Multi-Robot Stack with Sim Clock
+**Step C: 🚀 Step to Spawn All 3 Robots & Full Workcell:**
+1. Open **Window → Script Editor**.
+2. Open [`src/ur_simulation/scripts/spawn_multi_ur10e.py`](file:///Users/shivammaurya/Desktop/ros2_ws/nextup/multi_arm_ws/MultiArm-Pick-and-Place/src/ur_simulation/scripts/spawn_multi_ur10e.py) and click **Run**.
+3. Press **PLAY (▶)** in Isaac Sim.
+
+```bash
+# Step D (Terminal 1): Launch ROS 2 Multi-Robot Stack with Sim Clock
 ros2 launch multi_arm_bringup multi_arm_simulation.launch.py use_sim_time:=true
 
-# Step D (Terminal 2): Run Relay State Machine
+# Step E (Terminal 2): Run Relay State Machine
 ros2 run multi_arm_control task_manager --ros-args -p use_sim_time:=true
 ```
 
