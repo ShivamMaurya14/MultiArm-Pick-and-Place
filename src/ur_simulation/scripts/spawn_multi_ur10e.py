@@ -256,11 +256,14 @@ def create_ros2_action_graph(namespace, target_prim_path):
 # 6. Main Orchestrator
 # ---------------------------------------------------------------------------
 def main():
-    # Enable ROS 2 Bridge Extension
+    # Enable ROS 2 Bridge Extension (Supports Isaac Sim 6.0.1 and Isaac Sim 4.x/5.x)
     ext_manager = omni.kit.app.get_app().get_extension_manager()
-    for ext in ["omni.isaac.ros2_bridge", "omni.isaac.core"]:
-        if not ext_manager.is_extension_enabled(ext):
-            ext_manager.set_extension_enabled_immediate(ext, True)
+    for ext in ["isaacsim.ros2.bridge", "omni.isaac.ros2_bridge", "omni.isaac.core", "isaacsim.core"]:
+        try:
+            if not ext_manager.is_extension_enabled(ext):
+                ext_manager.set_extension_enabled_immediate(ext, True)
+        except Exception:
+            pass
 
     stage = omni.usd.get_context().get_stage()
     if not stage:
