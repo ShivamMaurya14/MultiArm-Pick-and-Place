@@ -138,4 +138,25 @@ ros2 run multi_arm_control task_manager --ros-args -p use_sim_time:=true
   * `ros2 topic echo /robot2/joint_states`
   * `ros2 topic echo /robot3/joint_states`
 * **Action Servers Ready:**
-  * `ros2 action list` should show `/robot1/pick_place`, `/robot2/pick_place`, `/robot3/pick_place`.
+  * `ros2 action list` should display `/robot1/pick_place`, `/robot2/pick_place`, `/robot3/pick_place`.
+
+---
+
+## 6. 🌌 Massive Multi-Cell Spawner for NVIDIA Cosmos & Physical AI (30 Groups / 90 Robots)
+
+To scale synthetic data generation and train world foundation models (e.g. **NVIDIA Cosmos**, Isaac Lab RL policies), a dedicated mass spawner script is provided: [`src/ur_simulation/scripts/spawn_multi_cell_cosmos.py`](file:///Users/shivammaurya/Desktop/ros2_ws/nextup/multi_arm_ws/MultiArm-Pick-and-Place/src/ur_simulation/scripts/spawn_multi_cell_cosmos.py).
+
+### Workcell Layout per Group:
+* **Triangular Configuration:** 3× UR10e manipulators arranged in a $120^\circ$ radial circle ($R=1.10\text{m}$) facing a central platform.
+* **Central Platform:** Radius $0.45\text{m}$ round interaction table at $Z=0.20\text{m}$ with high-friction PhysX material.
+* **Workpiece:** $60\text{mm}$ dynamic green rigid-body cube placed at the center of each group.
+* **Perception:** 2× Calibrated RTX Synthetic Cameras per group:
+  * `Camera_TopDown`: Overhead orthographic/perspective view ($Z=2.40\text{m}$).
+  * `Camera_Angled`: $45^\circ$ angled perspective view ($X+1.8, Y-1.8, Z+1.6$).
+* **Haptics:** Contact force/torque reporting APIs attached to all 90 robot wrists.
+* **Grid Scale:** 30 parallel groups ($6 \times 5$ grid, total 90 UR10e arms, 60 RTX cameras).
+
+### How to Run:
+1. Import template URDF to `/World/UR10e` as normal.
+2. In Isaac Sim **Script Editor**, open [`src/ur_simulation/scripts/spawn_multi_cell_cosmos.py`](file:///Users/shivammaurya/Desktop/ros2_ws/nextup/multi_arm_ws/MultiArm-Pick-and-Place/src/ur_simulation/scripts/spawn_multi_cell_cosmos.py) and click **Run**.
+3. Press **PLAY (▶)** to run the entire 90-robot simulation on GPU PhysX.
