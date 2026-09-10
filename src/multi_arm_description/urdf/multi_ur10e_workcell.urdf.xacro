@@ -229,19 +229,7 @@
       kinematics_parameters_file="$(find ur_description)/config/ur10e/default_kinematics.yaml"
       physical_parameters_file="$(find ur_description)/config/ur10e/physical_parameters.yaml"
       visual_parameters_file="$(find ur_description)/config/ur10e/visual_parameters.yaml"
-      safety_limits="false"
-      safety_pos_margin="0.15"
-      safety_k_position="20"
-      use_fake_hardware="true"
-      fake_sensor_commands="false"
-      sim_gazebo="false"
-      sim_ignition="false"
-      headless_mode="false"
-      initial_positions="${dict(shoulder_pan_joint=-0.2514,shoulder_lift_joint=-1.8000,elbow_joint=1.5000,wrist_1_joint=-1.2700,wrist_2_joint=-1.5708,wrist_3_joint=0.0)}"
-      use_tool_communication="false"
-      robot_ip="0.0.0.0"
-      non_blocking_read="true"
-      keep_alive_count="2">
+      initial_positions="${dict(shoulder_pan_joint=-0.2514,shoulder_lift_joint=-1.8000,elbow_joint=1.5000,wrist_1_joint=-1.2700,wrist_2_joint=-1.5708,wrist_3_joint=0.0)}">
       <origin xyz="0 0 0.20" rpy="0 0 0" />
     </xacro:ur_robot>
 
@@ -249,8 +237,7 @@
     <xacro:robotiq_gripper 
       name="${prefix}RobotiqGripperHardwareInterface" 
       prefix="${prefix}" 
-      parent="${prefix}tool0" 
-      use_fake_hardware="true">
+      parent="${prefix}tool0">
       <origin xyz="0 0 0" rpy="0 0 0" />
     </xacro:robotiq_gripper>
 
