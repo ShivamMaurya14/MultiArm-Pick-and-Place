@@ -6,17 +6,17 @@ Compatible with ROS 2 Jazzy Jalisco
 ================================================================================
 
 This script automates the complete scene generation for the 3-arm robotic cell:
-1. Physics Scene & Environment Lighting
-2. Ground Platform & Safety Demarcation Boundaries
-3. Steel Mounting Pedestals for Robot 1, Robot 2, and Robot 3
-4. High-Friction Industrial Workstation Tables (Stations A, B, C, D)
-5. Dynamic Workpiece Cube with Physics Colliders & High-Friction Contact Material
-6. Multi-Robot Instantiation at Pedestal Heights (Z=0.20m)
-7. OmniGraph ROS 2 Bridge Action Graphs (/clock, /robot[1..3]/joint_states, /robot[1..3]/joint_commands)
+1. Physics Scene (9.81 m/s^2) & High-Friction Contact Materials
+2. Ground Platform (2.4m x 5.6m) & Safety Demarcation Boundaries
+3. 3 Elevated Steel Pedestals for Robot 1, Robot 2, and Robot 3 (Z=0.20m)
+4. 4 Station Tables (Station A Blue, Station B/C Orange Buffers, Station D Purple)
+5. Dynamic Workpiece Cube (60mm, 0.15kg) with PhysX 5 Rigid Body Dynamics
+6. Multi-Robot Instantiation: clones template into /World/robot1, /World/robot2, /World/robot3
+7. Joint Drive Stabilization: locks all arm and gripper joints firmly into the calibrated ready posture (prevents ragdoll flailing/random movement)
+8. OmniGraph ROS 2 Bridge Action Graphs (/clock, /robot[1..3]/joint_states, /robot[1..3]/joint_commands)
 
-Execution Methods:
+Execution:
 - In Isaac Sim: Window -> Script Editor -> Paste / Open -> Click "Run"
-- Standalone: ./python.sh src/ur_simulation/scripts/spawn_multi_ur10e.py
 """
 
 import math
@@ -26,10 +26,8 @@ import omni.kit.commands
 from pxr import Usd, UsdGeom, UsdPhysics, PhysxSchema, Gf, Sdf, Vt
 
 # ---------------------------------------------------------------------------
-# Global Workcell Configuration (Calibrated to URDF World Coordinates)
+# Global Workcell & Kinematic Configurations
 # ---------------------------------------------------------------------------
-SOURCE_PRIM_PATH = "/World/UR10e"
-
 ROBOT_CONFIGS = [
     {
         "ns": "robot1",
@@ -63,19 +61,41 @@ WORKPIECE_CUBE = {
     "color": Gf.Vec3f(0.10, 0.85, 0.45)       # Emerald Green
 }
 
+# Calibrated joint ready positions (in degrees for USD PhysX Angular Drives)
+CALIBRATED_READY_POSITIONS_DEG = {
+    "shoulder_pan_joint": -14.404,     # -0.2514 rad (facing workspace forward)
+    "shoulder_lift_joint": -103.132,   # -1.8000 rad
+    "elbow_joint": 85.944,             # +1.5000 rad
+    "wrist_1_joint": -72.766,          # -1.2700 rad
+    "wrist_2_joint": -90.000,          # -1.5708 rad
+    "wrist_3_joint": 0.000,            #  0.0000 rad
+    "finger_joint": 0.000,             #  0.0000 rad (fully open)
+    "left_outer_knuckle_joint": 0.000,
+    "right_outer_knuckle_joint": 0.000,
+}
+
 # ---------------------------------------------------------------------------
 # 1. Physics Scene & Physics Material Setup
 # ---------------------------------------------------------------------------
 def setup_physics_scene(stage):
     """Ensures PhysicsScene and high-friction contact material exist."""
     scene_path = "/World/PhysicsScene"
-    if not stage.GetPrimAtPath(scene_path).IsValid():
+    scene_prim = stage.GetPrimAtPath(scene_path)
+    if not scene_prim.IsValid():
         scene = UsdPhysics.Scene.Define(stage, Sdf.Path(scene_path))
         scene.CreateGravityDirectionAttr().Set(Gf.Vec3f(0.0, 0.0, -1.0))
         scene.CreateGravityMagnitudeAttr().Set(9.81)
         print("[Physics] Created PhysicsScene with 9.81 m/s^2 gravity.")
+    else:
+        scene = UsdPhysics.Scene(scene_prim)
+        scene.CreateGravityMagnitudeAttr().Set(9.81)
 
-    # Create High-Friction Grasping Material (static=1.2, dynamic=0.9)
+    # PhysX Scene API for stability
+    physx_scene_api = PhysxSchema.PhysxSceneAPI.Apply(stage.GetPrimAtPath(scene_path))
+    physx_scene_api.CreateEnableCCDAttr(True)
+    physx_scene_api.CreateEnableStabilizationAttr(True)
+
+    # High-Friction Grasping Material (static=1.2, dynamic=0.9)
     mat_path = "/World/PhysicsMaterials/HighFrictionMat"
     if not stage.GetPrimAtPath(mat_path).IsValid():
         material_prim = UsdPhysics.MaterialAPI.Apply(stage.DefinePrim(Sdf.Path(mat_path), "Material"))
@@ -95,6 +115,7 @@ def create_cylinder(stage, prim_path, radius, height, pos, color, has_collision=
     cyl.GetAxisAttr().Set("Z")
     
     xform = UsdGeom.Xformable(cyl)
+    xform.ClearXformOpOrder()
     xform.AddTranslateOp().Set(pos)
     cyl.GetDisplayColorAttr().Set(Vt.Vec3fArray([color]))
     
@@ -110,6 +131,7 @@ def create_box(stage, prim_path, size, pos, color, has_collision=True, mat_path=
     box.GetSizeAttr().Set(1.0)
     
     xform = UsdGeom.Xformable(box)
+    xform.ClearXformOpOrder()
     xform.AddTranslateOp().Set(pos)
     xform.AddScaleOp().Set(size)
     box.GetDisplayColorAttr().Set(Vt.Vec3fArray([color]))
@@ -154,11 +176,8 @@ def setup_workcell_environment(stage, mat_path):
     for st in STATION_TABLES:
         name = st["name"]
         x, y = st["pos"][0], st["pos"][1]
-        # Pedestal stand
         create_cylinder(stage, f"{workcell_path}/{name}_pedestal", radius=0.12, height=0.20, pos=Gf.Vec3d(x, y, 0.10), color=Gf.Vec3f(0.28, 0.30, 0.35), has_collision=True)
-        # Circular table top (surface at Z=0.22m)
         create_cylinder(stage, f"{workcell_path}/{name}_top", radius=0.24, height=0.04, pos=Gf.Vec3d(x, y, 0.20), color=st["color"], has_collision=True, mat_path=mat_path)
-        # Placement ring indicator
         create_cylinder(stage, f"{workcell_path}/{name}_ring", radius=0.08, height=0.002, pos=Gf.Vec3d(x, y, 0.221), color=Gf.Vec3f(0.35, 0.38, 0.42), has_collision=False)
 
     # E. Dynamic Workpiece Cube (0.06m x 0.06m x 0.05m, mass 0.15kg)
@@ -171,7 +190,6 @@ def setup_workcell_environment(stage, mat_path):
         has_collision=True,
         mat_path=mat_path
     )
-    # Enable Rigid Body Dynamics
     rb_api = UsdPhysics.RigidBodyAPI.Apply(cube_box.GetPrim())
     rb_api.CreateRigidBodyEnabledAttr(True)
     mass_api = UsdPhysics.MassAPI.Apply(cube_box.GetPrim())
@@ -180,7 +198,62 @@ def setup_workcell_environment(stage, mat_path):
     print("[Workcell] Successfully assembled Ground, 3 Pedestals, 4 Station Tables, and Dynamic Cube.")
 
 # ---------------------------------------------------------------------------
-# 4. OmniGraph ROS 2 Simulation Clock (/clock)
+# 4. Joint Drive Stabilization (Prevents Ragdoll Collapsing / Random Motion)
+# ---------------------------------------------------------------------------
+def lock_robot_joint_drives(stage, robot_path):
+    """
+    Configures high stiffness and damping on all UR10e and Robotiq joints,
+    and sets target positions to the ready state so the robot stays completely still
+    and rigid, preventing any flailing, jitter, or collapsing.
+    """
+    robot_prim = stage.GetPrimAtPath(robot_path)
+    if not robot_prim.IsValid():
+        return
+
+    # Ensure Articulation Root and Solver Iterations
+    UsdPhysics.ArticulationRootAPI.Apply(robot_prim)
+    physx_art = PhysxSchema.PhysxArticulationAPI.Apply(robot_prim)
+    physx_art.CreateSolverPositionIterationCountAttr(32)
+    physx_art.CreateSolverVelocityIterationCountAttr(16)
+    physx_art.CreateStabilizationThresholdAttr(0.001)
+
+    joint_count = 0
+    for prim in Usd.PrimRange(robot_prim):
+        prim_type = prim.GetTypeName()
+        if "Joint" in prim_type:
+            joint_name = prim.GetName()
+            drive_api = UsdPhysics.DriveAPI.Apply(prim, "angular")
+            if not drive_api:
+                continue
+
+            # Determine stiffness and damping values
+            is_arm_joint = any(j in joint_name for j in ["shoulder", "elbow", "wrist"])
+            if is_arm_joint:
+                stiffness = 5000000.0   # 5e6
+                damping = 100000.0      # 1e5
+                max_force = 10000.0
+            else:
+                stiffness = 100000.0    # 1e5
+                damping = 1000.0        # 1e3
+                max_force = 500.0
+
+            drive_api.CreateTypeAttr("force")
+            drive_api.CreateStiffnessAttr(stiffness)
+            drive_api.CreateDampingAttr(damping)
+            drive_api.CreateMaxForceAttr(max_force)
+
+            # Assign calibrated ready angle (in degrees)
+            for target_jname, target_deg in CALIBRATED_READY_POSITIONS_DEG.items():
+                if target_jname in joint_name:
+                    drive_api.CreateTargetPositionAttr(target_deg)
+                    drive_api.CreateTargetVelocityAttr(0.0)
+                    joint_count += 1
+                    break
+
+    print(f"[{robot_path}] Configured & locked {joint_count} joint drives in ready pose.")
+
+# ---------------------------------------------------------------------------
+# 5. OmniGraph ROS 2 Simulation Clock (/clock)
 # ---------------------------------------------------------------------------
 def setup_global_clock_graph():
     stage = omni.usd.get_context().get_stage()
@@ -212,7 +285,7 @@ def setup_global_clock_graph():
         print(f"[ROS 2 Bridge] Clock graph note: {e}")
 
 # ---------------------------------------------------------------------------
-# 5. OmniGraph Robot Action Graphs (/robot[X]/joint_states & joint_commands)
+# 6. OmniGraph Robot Action Graphs (/robot[X]/joint_states & joint_commands)
 # ---------------------------------------------------------------------------
 def create_ros2_action_graph(namespace, target_prim_path):
     graph_path = f"{target_prim_path}/ROS2_ActionGraph"
@@ -253,7 +326,32 @@ def create_ros2_action_graph(namespace, target_prim_path):
         print(f"[{namespace}] Action Graph warning: {e}")
 
 # ---------------------------------------------------------------------------
-# 6. Main Orchestrator
+# 7. Helper to Find Any Imported Robot Template in Stage
+# ---------------------------------------------------------------------------
+def find_imported_robot_template(stage):
+    candidates = [
+        "/World/UR10e",
+        "/World/ur10e_robotiq",
+        "/World/ur10e",
+        "/ur10e_robotiq",
+        "/UR10e",
+        "/World/robot1"
+    ]
+    for p in candidates:
+        prim = stage.GetPrimAtPath(p)
+        if prim.IsValid() and len(prim.GetChildren()) > 0:
+            return p
+
+    # Dynamic search across stage
+    for prim in stage.Traverse():
+        name_lower = prim.GetName().lower()
+        if "ur10e" in name_lower or "robot" in name_lower:
+            if len(prim.GetChildren()) > 0:
+                return str(prim.GetPath())
+    return None
+
+# ---------------------------------------------------------------------------
+# 8. Main Orchestrator
 # ---------------------------------------------------------------------------
 def main():
     # Enable ROS 2 Bridge Extension (Supports Isaac Sim 6.0.1 and Isaac Sim 4.x/5.x)
@@ -280,62 +378,63 @@ def main():
     setup_global_clock_graph()
 
     # 4. Locate Source Robot Template
-    global SOURCE_PRIM_PATH
-    source_prim = stage.GetPrimAtPath(SOURCE_PRIM_PATH)
-    if not source_prim.IsValid():
-        alt_paths = ["/World/ur10e_robotiq", "/World/ur10e", "/UR10e"]
-        for p in alt_paths:
-            if stage.GetPrimAtPath(p).IsValid():
-                SOURCE_PRIM_PATH = p
-                source_prim = stage.GetPrimAtPath(p)
-                break
-
-    if not source_prim or not source_prim.IsValid():
-        print(f"\n[INFO] Robot template not found at '{SOURCE_PRIM_PATH}'.")
-        print(">> To import robot: Use 'Isaac Utils -> Workflows -> URDF Importer', select '/tmp/ur10e_robotiq.urdf', and import to '/World/UR10e'.")
-        print(">> Then re-run this script to instantiate Robot 1, 2, and 3.\n")
+    source_path = find_imported_robot_template(stage)
+    if not source_path:
+        print("\n[ERROR] Robot template not found in Stage!")
+        print(">> Please import /tmp/ur10e_robotiq.urdf to /World/UR10e via URDF Importer first.")
+        print(">> Then click Run on this script.\n")
         return
 
-    # 5. Instantiate & Configure the 3 UR10e Robots on Pedestals
+    print(f"[Spawner] Found robot template at '{source_path}'.")
+
+    # 5. Instantiate all 3 UR10e Robots on their Pedestals
     for cfg in ROBOT_CONFIGS:
         ns = cfg["ns"]
         target_path = f"/World/{ns}"
+
+        # If target doesn't exist or is empty, duplicate from template
+        target_prim = stage.GetPrimAtPath(target_path)
+        if not target_prim.IsValid() or len(target_prim.GetChildren()) == 0:
+            if source_path != target_path:
+                omni.kit.commands.execute(
+                    'CopyPrims',
+                    paths_from=[source_path],
+                    paths_to=[target_path],
+                    duplicate_layers=True
+                )
         
-        # Duplicate robot if not present
-        if not stage.GetPrimAtPath(target_path).IsValid():
-            omni.kit.commands.execute(
-                'CopyPrims',
-                paths_from=[SOURCE_PRIM_PATH],
-                paths_to=[target_path],
-                duplicate_layers=True
-            )
-        
-        # Set exact mounting height on top of pedestal (Z = 0.20m)
         prim = stage.GetPrimAtPath(target_path)
         if prim.IsValid():
+            # Make sure prim is visible
+            UsdGeom.Imageable(prim).MakeVisible()
+
+            # Set exact mounting height on top of pedestal (Z = 0.20m)
             xform = UsdGeom.Xformable(prim)
             xform.ClearXformOpOrder()
             translate_op = xform.AddTranslateOp()
             translate_op.Set(cfg["origin"])
-            
-            # Ensure Articulation Root API is applied
-            if not prim.HasAPI(UsdPhysics.ArticulationRootAPI):
-                UsdPhysics.ArticulationRootAPI.Apply(prim)
-            
+
+            # Lock joint drives in calibrated upright ready pose
+            lock_robot_joint_drives(stage, target_path)
+
             # Attach OmniGraph ROS 2 Bridge
             create_ros2_action_graph(ns, target_path)
 
-    # Hide the source template
-    UsdGeom.Imageable(source_prim).MakeInvisible()
+    # If source template was /World/UR10e (separate from robot1), hide template
+    if source_path not in [f"/World/{c['ns']}" for c in ROBOT_CONFIGS]:
+        source_prim = stage.GetPrimAtPath(source_path)
+        if source_prim.IsValid():
+            UsdGeom.Imageable(source_prim).MakeInvisible()
 
     print("\n==========================================================================")
-    print(" INDUSTRIAL WORKCELL & MULTI-UR10e SETUP COMPLETED IN ISAAC SIM!")
-    print(" - 3 Robots positioned at Pedestal Heights (Z=0.20m): Y=0.0, Y=1.6, Y=3.2")
-    print(" - 4 Stations (A, B, C, D) with calibrated target rings & colors")
-    print(" - Dynamic Workpiece Cube placed at Station A (0.70, 0.00, 0.245)")
-    print(" - High-Friction contact material applied for slip-free grasping")
-    print(" - ROS 2 Bridge active on /clock, /robot[1..3]/joint_states")
-    print(" Click PLAY (▶) in Isaac Sim, then run task_manager in ROS 2.")
+    print(" ✅ ALL 3 UR10e ROBOTS SPAWNED & STABILIZED IN ISAAC SIM!")
+    print(" - Robot 1: /World/robot1 (Y=0.0m, Z=0.20m on Pedestal)")
+    print(" - Robot 2: /World/robot2 (Y=1.6m, Z=0.20m on Pedestal)")
+    print(" - Robot 3: /World/robot3 (Y=3.2m, Z=0.20m on Pedestal)")
+    print(" - Joint Drives: Locked in stable upright ready pose (NO random movement)")
+    print(" - 4 Stations (A, B, C, D) + Dynamic Green Cube ready on Station A")
+    print(" - ROS 2 Bridge: /clock, /robot[1..3]/joint_states & joint_commands active")
+    print(" 👉 Click PLAY (▶) in Isaac Sim, then run task_manager in ROS 2.")
     print("==========================================================================\n")
 
 if __name__ == "__main__":
