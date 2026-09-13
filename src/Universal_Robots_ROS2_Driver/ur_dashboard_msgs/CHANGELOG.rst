@@ -2,97 +2,117 @@
 Changelog for package ur_dashboard_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2.14.0 (2026-07-21)
--------------------
-
-2.13.2 (2026-06-24)
--------------------
-* Update safety status msg with new IO plane stop (backport `#1817 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1817>`_) (`#1818 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1818>`_)
+3.8.0 (2026-04-09)
+------------------
+* Use integer representation of SafetyStatus.msg (backport `#1734 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1734>`_) (`#1742 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1742>`_)
+* Services to support various dashboard calls (backport `#1674 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1674>`_) (`#1709 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1709>`_)
+* Dashboard client new x commands (backport `#1679 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1679>`_) (`#1695 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1695>`_)
 * Contributors: mergify[bot]
 
-2.13.1 (2026-05-15)
--------------------
+3.7.0 (2026-01-13)
+------------------
 
-2.13.0 (2026-04-09)
--------------------
-* Use integer representation of SafetyStatus.msg (backport `#1734 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1734>`_) (`#1741 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1741>`_)
-* Services to support various dashboard calls (backport `#1674 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1674>`_) (`#1708 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1708>`_)
-* Dashboard client new x commands (backport `#1679 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1679>`_) (`#1694 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1694>`_)
+3.6.0 (2025-11-13)
+------------------
+* Explicitly state PolyScope X compatibility (backport `#1563 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1563>`_) (`#1568 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1568>`_)
 * Contributors: mergify[bot]
 
-2.12.0 (2026-01-13)
--------------------
-
-2.11.0 (2025-12-01)
--------------------
-
-2.10.0 (2025-10-23)
--------------------
-
-2.9.0 (2025-09-16)
+3.5.0 (2025-10-23)
 ------------------
-* Added 'is in remote control' call as a dashboard service (backport of `#1433 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1433>`_) (`#1436 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1436>`_)
+
+3.4.0 (2025-09-16)
+------------------
+* Added 'is in remote control' call as a dashboard service (backport of `#1433 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1433>`_) (`#1437 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1437>`_)
 * Contributors: mergify[bot]
 
-2.8.1 (2025-06-11)
+3.3.3 (2025-06-24)
 ------------------
 
-2.8.0 (2025-05-20)
+3.3.2 (2025-06-10)
 ------------------
 
-2.7.0 (2025-04-10)
+3.3.1 (2025-05-28)
 ------------------
 
-2.6.0 (2025-03-17)
-------------------
-* Port robot_state_helper to ROS2 (backport of  `#933 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/933>`_) (`#1286 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1286>`_)
-* Contributors: mergify[bot]
-
-2.5.2 (2025-01-21)
+3.3.0 (2025-05-20)
 ------------------
 
-2.5.1 (2024-12-21)
+3.2.1 (2025-04-11)
 ------------------
 
-2.5.0 (2024-12-18)
+3.2.0 (2025-04-10)
 ------------------
-* Update package maintainers (backport of `#1203 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1203>`_)
-* Contributors: mergify[bot]
 
-2.2.16 (2024-10-28)
+3.1.1 (2025-03-17)
+------------------
+
+3.1.0 (2025-03-05)
+------------------
+* Port robot_state_helper to ROS2 (`#933 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/933>`_)
+* Contributors: Felix Durchdewald
+
+3.0.2 (2025-01-21)
+------------------
+
+3.0.1 (2024-12-30)
+------------------
+
+3.0.0 (2024-12-18)
+------------------
+* Update package maintainers (`#1203 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1203>`_)
+* Contributors: Felix Exner
+
+2.4.13 (2024-10-28)
 -------------------
 
-2.2.15 (2024-07-26)
+2.4.12 (2024-10-14)
 -------------------
 
-2.2.14 (2024-07-01)
+2.4.11 (2024-10-10)
 -------------------
 
-2.2.13 (2024-06-17)
+2.4.10 (2024-09-11)
 -------------------
+* Update maintainers team (`#1088 <https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/1088>`_)
+* Contributors: Vincenzo Di Pentima
 
-2.2.12 (2024-05-16)
--------------------
-
-2.2.11 (2024-04-08)
--------------------
-
-2.2.10 (2024-01-03)
--------------------
-
-2.2.9 (2023-09-22)
+2.4.9 (2024-08-09)
 ------------------
 
-2.2.8 (2023-06-26)
+2.4.8 (2024-07-01)
 ------------------
 
-2.2.7 (2023-06-02)
+2.4.7 (2024-06-19)
 ------------------
 
-2.2.6 (2022-11-28)
+2.4.6 (2024-06-17)
 ------------------
 
-2.2.5 (2022-11-19)
+2.4.5 (2024-05-16)
+------------------
+
+2.4.4 (2024-04-04)
+------------------
+
+2.4.3 (2024-02-02)
+------------------
+
+2.4.2 (2023-11-23)
+------------------
+
+2.4.1 (2023-09-21)
+------------------
+
+2.4.0 (2023-08-28)
+------------------
+
+2.3.2 (2023-06-02)
+------------------
+
+2.3.1 (2023-03-16)
+------------------
+
+2.3.0 (2023-03-02)
 ------------------
 
 2.2.4 (2022-10-07)

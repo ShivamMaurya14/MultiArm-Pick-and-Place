@@ -1,7 +1,9 @@
+:github_url: https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/blob/main/ur_robot_driver/doc/setup_tool_communication.rst
+
 .. _setup-tool-communication:
 
-Setting up the tool communication on an e-Series robot
-======================================================
+Setting up the tool communication on an e-Series / UR Series robot
+==================================================================
 
 .. note::
    Currently, there seems to be issues with having the tool communication setup from this guide and
@@ -12,7 +14,7 @@ Setting up the tool communication on an e-Series robot
    `this issue <https://github.com/UniversalRobots/Universal_Robots_ToolComm_Forwarder_URCap/issues/9>`_
    for details and the current state.
 
-The Universal Robots e-Series provides an rs485 based interface at the tool flange that can be used
+From the e-Series on, Universal Robots provide an rs485 based interface at the tool flange that can be used
 to attach an rs485-based device to the robot's tcp without the need to wire a separate cable along
 the robot.
 
@@ -25,10 +27,26 @@ launch files to utilize the robot's tool communication.
 Robot setup
 -----------
 
-For setting up the robot, please install the **rs485-1.0.urcap** found in the **resources** folder.
-Installing a URCap is explained in the :ref:`setup guide <install-urcap-e-series>` for the **external-control** URCap.
+For **PolyScope 5**, please install the **rs485-1.0.urcap** found in the **resources** folder.
+Installing a URCap is explained in the :ref:`setup guide <install_urcap>` for the **external-control** URCap.
+
+For **PolyScope X**, you can download the latest tool-comm-forwarder URCapX from its `release
+page <https://github.com/UniversalRobots/Universal_Robots_ToolComm_Forwarder_URCapX/releases>`_.
+After installation, please make sure to activate tool forwarding in the URCap's application screen.
 
 After installing the URCap the robot will expose its tool communication device to the network.
+
+.. note::
+   If you cannot connect to the network-exposed tool communication port, please make sure that the
+   robot isn't configured to block inbound connections. To check if this is the case, go to the
+   **Hamburger Menu** -> **Settings** -> **Security** -> **General**, and ensure port 54321 is not
+   disabled in the fields under **Inbound Connections**.
+
+   Both fields can be cleared to remove all restrictions and enable all ports.
+
+   .. image:: resources/inbound.png
+      :alt: Screenshot showing the inbound connections menu screen.
+
 
 Setup the ROS side
 ------------------
@@ -38,7 +56,7 @@ launch files:
 
 .. code-block:: bash
 
-   $ ros2 launch ur_robot_driver ur_control.launch.py ur_type:=ur5e robot_ip:=yyy.yyy.yyy.yyy use_tool_communication:=true use_fake_hardware:=false launch_rviz:=false
+   $ ros2 launch ur_robot_driver ur_control.launch.py ur_type:=ur5e robot_ip:=yyy.yyy.yyy.yyy use_tool_communication:=true use_mock_hardware:=false launch_rviz:=false
      # remember that your user needs to have the rights to write that file handle to /tmp/ttyUR
 
 Following parameters can be set `ur.ros2_control.xacro <https://github.com/UniversalRobots/Universal_Robots_ROS2_Description/blob/ros2/urdf/ur.ros2_control.xacro>`_\ :

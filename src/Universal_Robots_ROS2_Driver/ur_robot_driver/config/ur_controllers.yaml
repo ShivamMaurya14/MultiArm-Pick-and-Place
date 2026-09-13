@@ -42,14 +42,25 @@ controller_manager:
     tcp_pose_broadcaster:
       type: pose_broadcaster/PoseBroadcaster
 
-    passthrough_trajectory_controller:
-      type: ur_controllers/PassthroughTrajectoryController
-
     ur_configuration_controller:
       type: ur_controllers/URConfigurationController
 
     tool_contact_controller:
       type: ur_controllers/ToolContactController
+
+    gravity_update_controller:
+      type: ur_controllers/GravityUpdateController
+
+    twist_controller:
+      type: ur_controllers/TwistController
+
+    # The way this is currently implemented upstream doesn't really work for us. When using
+    # position control, the robot will have a tracking error. However, limits will be enforced
+    # from the currently reported position, effectively limiting the possible step size using the
+    # joints' velocity limits. Until this is resolved, we will keep command limits non-enforced.
+    # Note: On Jazzy this is the default behavior, anyway. For Rolling / Kilted this defaults to
+    # true.
+    enforce_command_limits: false
 
 speed_scaling_state_broadcaster:
   ros__parameters:
@@ -61,6 +72,10 @@ io_and_status_controller:
     tf_prefix: "$(var tf_prefix)"
 
 ur_configuration_controller:
+  ros__parameters:
+    tf_prefix: "$(var tf_prefix)"
+
+twist_controller:
   ros__parameters:
     tf_prefix: "$(var tf_prefix)"
 
@@ -133,7 +148,6 @@ scaled_joint_trajectory_controller:
       $(var tf_prefix)wrist_2_joint: { trajectory: 0.2, goal: 0.1 }
       $(var tf_prefix)wrist_3_joint: { trajectory: 0.2, goal: 0.1 }
     speed_scaling_interface_name: $(var tf_prefix)speed_scaling/speed_scaling_factor
-    update_rate: $(var update_rate)
 
 passthrough_trajectory_controller:
   ros__parameters:
@@ -202,5 +216,9 @@ tcp_pose_broadcaster:
       child_frame_id: $(var tf_prefix)tool0_controller
 
 tool_contact_controller:
+  ros__parameters:
+    tf_prefix: "$(var tf_prefix)"
+
+gravity_update_controller:
   ros__parameters:
     tf_prefix: "$(var tf_prefix)"
