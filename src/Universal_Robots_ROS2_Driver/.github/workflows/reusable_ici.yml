@@ -34,11 +34,6 @@ on:
         default: '.ccache'
         required: false
         type: string
-      rosdep_skip_keys:
-        description: "Skip those keys when doing 'rosdep install'. space-separated list"
-        default: ''
-        required: false
-        type: string
 
 jobs:
   reusable_ici:
@@ -111,7 +106,6 @@ jobs:
           ROS_DISTRO: ${{ inputs.ros_distro }}
           ROS_REPO: ${{ inputs.ros_repo }}
           ADDITIONAL_DEBS: docker.io netcat-openbsd curl  # Needed for integration tests
-          OS_CODE_NAME: ${{ inputs.ros_distro == 'rolling' && 'resolute' || '' }}
           CMAKE_ARGS: >-
             -DUR_ROBOT_DRIVER_BUILD_INTEGRATION_TESTS=ON
             ${{ (

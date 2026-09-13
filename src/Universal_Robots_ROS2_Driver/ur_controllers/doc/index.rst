@@ -1,3 +1,5 @@
+:github_url: https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/blob/main/ur_controllers/doc/index.rst
+
 ur_controllers
 ==============
 
@@ -12,6 +14,7 @@ robot family. Currently this contains:
 * A **io_and_status_controller** that allows setting I/O ports, controlling some UR-specific
   functionality and publishes status information about the robot.
 * A **tool_contact_controller** that exposes an action to enable the tool contact function on the robot.
+* A **twist_controller** that streams Cartesian TCP velocities to the robot.
 
 About this package
 ------------------
@@ -266,6 +269,113 @@ Implementation details / dataflow
   command interface), the action will be aborted.
 * When the action is preempted, execution on the hardware is preempted.
 
+.. _twist_controller:
+
+ur_controllers/TwistController
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This controller streams Cartesian TCP velocities to the robot. It accepts velocity commands on a
+topic and forwards them to the hardware interface, which executes them using the URScript function
+``speedl(...)``.
+
+Unlike the ``forward_velocity_controller``, which commands joint-space velocities via ``speedj``,
+this controller commands tool-space velocities in the robot's ``base`` frame.
+
+.. warning::
+
+   With the twist controller, the user is responsible for sending commands that are safe and
+   achievable. The robot will try to follow commands as fast as possible without trajectory
+   planning.
+
+.. note::
+
+   The robot will scale down the execution speed if its safety limits or speed slider require it.
+   Unlike trajectory-based controllers, the twist controller does not automatically account for
+   this scaling. Monitor the :ref:`speed_scaling_state_broadcaster <speed_scaling_state_broadcaster>` to
+   detect when the robot is scaling down and adapt your commands accordingly.
+
+Parameters
+""""""""""
+
++---------------+--------+---------------+----------------------------------------+
+| Parameter name| Type   | Default value | Description                            |
+|               |        |               |                                        |
++---------------+--------+---------------+----------------------------------------+
+| ``tf_prefix`` | string | <empty>       | Urdf prefix of the corresponding arm   |
++---------------+--------+---------------+----------------------------------------+
+
+Topic interface / usage
+"""""""""""""""""""""""
+
+The controller provides the ``~/twist`` topic of type ``geometry_msgs/msg/TwistStamped`` for
+streaming velocity commands. To use this topic, the controller has to be in ``active`` state.
+
+The ``header.frame_id`` must be the robot's base frame (``base`` or ``${tf_prefix}base`` when using
+a prefixed robot). Commands in other frames are currently ignored.
+
+Linear velocities are given in m/s and angular velocities in rad/s. Both are expressed in the
+robot's ``base`` frame.
+
+When the controller is activated or deactivated, all velocity commands are reset to zero. While
+active, the last received command is held until a new message arrives.
+
+To activate the controller, first deactivate any other motion controller that claims the same
+hardware interfaces:
+
+.. code-block:: console
+
+   ros2 control switch_controllers --deactivate joint_trajectory_controller \
+     --activate twist_controller
+
+Example command to move the TCP slowly along the base x axis:
+
+.. code-block:: console
+
+   ros2 topic pub --rate 50 /twist_controller/twist geometry_msgs/msg/TwistStamped \
+     "{header: {frame_id: 'base'}, twist: {linear: {x: 0.05}}}"
+
+.. note::
+
+   For continuous motion, publish commands at a steady rate. When you stop publishing, the robot
+   will continue executing the last received velocity until you send a zero twist or deactivate the
+   controller.
+
+Controller compatibility
+""""""""""""""""""""""""
+
+The twist controller is mutually exclusive with all other motion controllers
+(``joint_trajectory_controller``, ``passthrough_trajectory_controller``,
+``forward_position_controller``, ``forward_velocity_controller``, ``forward_effort_controller``,
+``freedrive_mode_controller``).
+It can be combined with the
+:ref:`tool_contact_controller <tool_contact_controller>` and the :ref:`force_mode_controller <force_mode_controller>`\*.
+
+.. note::
+   When combining force_mode and twist remember that force_mode will "claim" axes that aren't
+   available for twist commands anymore.
+
+Interfaces
+""""""""""
+
+In order to use this controller, the hardware has to export command interfaces for Cartesian
+velocities:
+
+.. code:: xml
+
+   <gpio name="${tf_prefix}twist">
+     <command_interface name="linear_velocity_x"/>
+     <command_interface name="linear_velocity_y"/>
+     <command_interface name="linear_velocity_z"/>
+     <command_interface name="angular_velocity_x"/>
+     <command_interface name="angular_velocity_y"/>
+     <command_interface name="angular_velocity_z"/>
+   </gpio>
+
+.. note::
+
+   The hardware component ensures that the twist command interfaces cannot be activated in
+   parallel to other streaming or trajectory command interfaces.
+
 .. _force_mode_controller:
 
 ur_controllers/ForceModeController
@@ -454,3 +564,98 @@ The controller provides one action for enabling tool contact. For the controller
   .. code-block::
 
      ros2 action send_goal /tool_contact_controller/detect_tool_contact ur_msgs/action/ToolContact
+
+.. _ur_configuration_controller:
+
+ur_controllers/URConfigurationController
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This controller provides access to UR-specific robot configuration data. Currently, it provides a
+service to query the robot's software version.
+
+Parameters
+""""""""""
+
++-------------------------+--------+---------------+---------------------------------------------------------------------------------------+
+| Parameter name          | Type   | Default value | Description                                                                           |
+|                         |        |               |                                                                                       |
++-------------------------+--------+---------------+---------------------------------------------------------------------------------------+
+| ``tf_prefix``           | string | <empty>       | Urdf prefix of the corresponding arm                                                  |
++-------------------------+--------+---------------+---------------------------------------------------------------------------------------+
+
+Service interface / usage
+"""""""""""""""""""""""""
+
+* ``~/get_software_version [ur_msgs/srv/GetRobotSoftwareVersion]``: Get the robot's software
+  version. The response contains the major, minor and patch version of the robot's software, as
+  well as the build number if available. For example, for a robot running PolyScope 5.12.1 the
+  response would be major version 5, minor version 12 and patch version 1.
+
+.. _gravity_update_controller:
+
+ur_controllers/GravityUpdateController
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This controller updates the gravity vector used by the robot controller. The robot uses this
+vector for gravity compensation during motion and torque control. By default, the robot assumes a
+gravity vector pointing straight down in its base frame (typically ``[0, 0, -9.82]`` m/s² in a
+standard floor-mounted setup).
+
+Use this controller when the robot is mounted in a non-standard orientation, for example on a wall
+or ceiling, or when the base frame does not align with the physical gravity direction. The
+controller forwards the requested gravity vector to the robot through the URScript ``set_gravity()``
+function.
+
+The service accepts the gravity direction in any frame that can be transformed to the robot's
+``base`` frame. The controller rotates the vector into the base frame and forwards it to the
+hardware interface.
+
+.. note::
+
+   The service expects the **direction of gravity**, pointing towards the Earth's center. The
+   controller negates this vector internally before sending it to the robot, as the underlying UR
+   client library expects an anti-gravity vector (pointing away from the Earth's center).
+
+Parameters
+""""""""""
+
++-------------------------------------+--------+---------------+---------------------------------------------------------------------+
+| Parameter name                      | Type   | Default value | Description                                                         |
+|                                     |        |               |                                                                     |
++-------------------------------------+--------+---------------+---------------------------------------------------------------------+
+| ``tf_prefix``                       | string | <empty>       | Urdf prefix of the corresponding arm                                |
++-------------------------------------+--------+---------------+---------------------------------------------------------------------+
+| ``check_io_successfull_retries``    | int    | 10            | Amount of retries for checking if setting gravity was successful    |
++-------------------------------------+--------+---------------+---------------------------------------------------------------------+
+
+Service interface / usage
+"""""""""""""""""""""""""
+
+The controller provides a service for setting the gravity vector. To use this service, the
+controller has to be in ``active`` state.
+
+* ``~/set_gravity [ur_msgs/srv/SetGravity]``: Set the gravity direction experienced by the robot.
+
+The request contains a ``geometry_msgs/Vector3Stamped`` named ``gravity``. The vector specifies
+the direction of gravity (towards the Earth's center) and ``header.frame_id`` specifies the frame
+in which the vector is expressed. Any frame that can be transformed to the robot's ``base`` frame
+can be used.
+
+Example for a standard floor-mounted robot (gravity pointing down in the ``base`` frame):
+
+.. code-block:: console
+
+   ros2 service call /gravity_update_controller/set_gravity ur_msgs/srv/SetGravity \
+     "{gravity: {header: {frame_id: 'base'}, vector: {x: 0.0, y: 0.0, z: -9.82}}}"
+
+Example for a ceiling-mounted robot (gravity pointing up in the ``base`` frame):
+
+.. code-block:: console
+
+   ros2 service call /gravity_update_controller/set_gravity ur_msgs/srv/SetGravity \
+     "{gravity: {header: {frame_id: 'base'}, vector: {x: 0.0, y: 0.0, z: 9.82}}}"
+
+.. note::
+
+   When using the mocked hardware interface, the service may report failure even though the command
+   was accepted, because the mock does not emulate the asynchronous success feedback from the robot.

@@ -29,6 +29,8 @@ import logging
 import time
 
 import rclpy
+from rclpy.qos import QoSProfile, DurabilityPolicy
+
 from controller_manager_msgs.srv import (
     ListControllers,
     SwitchController,
@@ -46,9 +48,8 @@ from launch.actions import (
 )
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
-from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackagePrefix, FindPackageShare
 from launch_testing.actions import ReadyToTest
 from rclpy.action import ActionClient
@@ -85,6 +86,7 @@ from ur_msgs.srv import (
 from builtin_interfaces.msg import Duration
 from control_msgs.action import FollowJointTrajectory
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+from std_msgs.msg import Bool as BoolMsg
 
 TIMEOUT_WAIT_SERVICE = 10
 TIMEOUT_WAIT_SERVICE_INITIAL = 120  # If we download the docker image simultaneously to the tests, it can take quite some time until the dashboard server is reachable and usable.
@@ -123,6 +125,28 @@ def _wait_for_action(node, action_name, action_type, timeout):
 
     logging.info("  Successfully connected to action server '%s'", action_name)
     return client
+
+
+def wait_for_robot_program_state(node, state, timeout):
+    received_state = None
+
+    def callback(msg):
+        nonlocal received_state
+        received_state = msg.data
+
+    subscription = node.create_subscription(
+        BoolMsg,
+        "/io_and_status_controller/robot_program_running",
+        callback,
+        QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL),
+    )
+
+    start_time = time.time()
+    while time.time() - start_time < timeout and received_state != state:
+        rclpy.spin_once(node, timeout_sec=0.1)
+
+    node.destroy_subscription(subscription)
+    return received_state
 
 
 def _call_service(node, client, request):
@@ -565,8 +589,8 @@ def generate_mock_hardware_test_description(
         "headless_mode": "true",
         "launch_dashboard_client": "true",
         "start_joint_controller": "false",
-        "use_fake_hardware": "true",
-        "fake_sensor_commands": "true",
+        "use_mock_hardware": "true",
+        "mock_sensor_commands": "true",
     }
     if tf_prefix:
         launch_arguments["tf_prefix"] = tf_prefix
@@ -662,55 +686,25 @@ def generate_driver_test_description_for_model(
     if ursim_type is None:
         ursim_type = ur_type
 
-    script_filename = PathJoinSubstitution(
-        [FindPackageShare("ur_client_library"), "resources", "external_control.urscript"]
-    )
-    input_recipe_filename = PathJoinSubstitution(
-        [FindPackageShare("ur_robot_driver"), "resources", "rtde_input_recipe.txt"]
-    )
-    output_recipe_filename = PathJoinSubstitution(
-        [FindPackageShare("ur_robot_driver"), "resources", "rtde_output_recipe.txt"]
+    description_launchfile = (
+        PathJoinSubstitution([FindPackageShare("ur_robot_driver"), "launch", "ur_rsp.launch.py"]),
     )
 
-    robot_description_content = Command(
-        [
-            PathJoinSubstitution([FindExecutable(name="xacro")]),
-            " ",
-            PathJoinSubstitution([FindPackageShare("ur_description"), "urdf", "ur.urdf.xacro"]),
-            " ",
-            "robot_ip:=",
-            "192.168.56.101",
-            " ",
-            "name:=",
-            hw_name,
-            " ",
-            "script_filename:=",
-            script_filename,
-            " ",
-            "input_recipe_filename:=",
-            input_recipe_filename,
-            " ",
-            "output_recipe_filename:=",
-            output_recipe_filename,
-            " ",
-            "headless_mode:=true",
-            " ",
-            "ur_type:=",
-            ur_type,
-            " ",
-            "verify_robot_model:=true",
-        ]
+    rsp = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(description_launchfile),
+        launch_arguments={
+            "robot_ip": "192.168.56.101",
+            "ur_type": ur_type,
+            "verify_robot_model": "true",
+        }.items(),
     )
-    robot_description = {
-        "robot_description": ParameterValue(value=robot_description_content, value_type=str)
-    }
+
     control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
         parameters=[
-            robot_description,
             {"update_rate": 125},  # that fits all models
-            {"hardware_components_initial_state": {"unconfigured": ["ur"]}},
+            {"hardware_components_initial_state": {"unconfigured": [ur_type]}},
         ],
         output="screen",
     )
@@ -736,6 +730,7 @@ def generate_driver_test_description_for_model(
         [
             ReadyToTest(),
             wait_dashboard_server,
+            rsp,
             _ursim_action(
                 ursim_version=ursim_version, ur_type=ursim_type, container_name=container_name
             ),

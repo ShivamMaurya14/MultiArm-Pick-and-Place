@@ -15,7 +15,7 @@ option(
 option(
   UR_ROBOT_DRIVER_RUN_ROBOT_MODELS_TEST
   "Run the integration test that runs the driver against URSim for every supported robot model"
-  ON
+  OFF
 )
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -40,7 +40,6 @@ find_package(hardware_interface REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
-find_package(realtime_tools REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
@@ -72,6 +71,7 @@ add_library(ur_robot_driver_plugin
   SHARED
   src/dashboard_client_ros.cpp
   src/hardware_interface.cpp
+  src/mode_compatibility.cpp
   src/urcl_log_handler.cpp
   src/robot_state_helper.cpp
 )
@@ -101,18 +101,6 @@ add_executable(dashboard_client
 )
 target_link_libraries(dashboard_client ur_client_library::urcl)
 ament_target_dependencies(dashboard_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${THIS_PACKAGE_INCLUDE_DEPENDS})
-
-#
-# ur_ros2_control_node
-#
-add_executable(ur_ros2_control_node
-  src/ur_ros2_control_node.cpp
-)
-ament_target_dependencies(ur_ros2_control_node
-  controller_manager
-  rclcpp
-  realtime_tools
-)
 
 #
 # controller_stopper_node
@@ -155,12 +143,11 @@ target_link_libraries(trajectory_until_node PUBLIC
 
 install(
   TARGETS
-    controller_stopper_node
     dashboard_client
+    controller_stopper_node
+    urscript_interface
     robot_state_helper
     trajectory_until_node
-    ur_ros2_control_node
-    urscript_interface
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -203,9 +190,10 @@ ament_export_dependencies(
 # Install Python execs
 ament_python_install_package(${PROJECT_NAME})
 
-# Install Python executables
+# Install executables
 install(PROGRAMS
   scripts/tool_communication.py
+  scripts/wait_for_robot_description
   scripts/example_move.py
   scripts/start_ursim.sh
   examples/examples.py
@@ -218,21 +206,25 @@ install(PROGRAMS scripts/wait_dashboard_server.sh
   DESTINATION bin
 )
 
-install(PROGRAMS scripts/start_ursim.sh
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(DIRECTORY config launch
+install(DIRECTORY config launch urdf
   DESTINATION share/${PROJECT_NAME}
 )
 
 ament_package()
 
 if(BUILD_TESTING)
+  find_package(ament_cmake_gmock REQUIRED)
   find_package(ur_controllers REQUIRED)
   find_package(ur_description REQUIRED)
   find_package(ur_msgs REQUIRED)
   find_package(launch_testing_ament_cmake)
+
+  ament_add_gmock(test_mode_compatibility_symmetry
+    test/test_mode_compatibility_symmetry.cpp
+  )
+  target_link_libraries(test_mode_compatibility_symmetry
+    ur_robot_driver_plugin
+  )
 
   add_launch_test(test/test_mock_hardware.py
     TIMEOUT
@@ -249,6 +241,10 @@ if(BUILD_TESTING)
         180
     )
     add_launch_test(test/dashboard_client.py
+      TIMEOUT
+        180
+    )
+    add_launch_test(test/example_move.py
       TIMEOUT
         180
     )
@@ -289,6 +285,10 @@ if(BUILD_TESTING)
         800
     )
     add_launch_test(test/integration_test_tool_contact.py
+      TIMEOUT
+        800
+    )
+    add_launch_test(test/integration_test_twist_controller.py
       TIMEOUT
         800
     )

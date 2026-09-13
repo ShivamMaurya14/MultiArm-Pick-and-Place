@@ -82,14 +82,12 @@ ROBOT_MODEL_CASES = [
     ("ur5e", "ur20"),
 ]
 
-HW_NAME = "ur"
-
 
 @pytest.mark.launch_test
 @launch_testing.parametrize("ursim_type, driver_type", ROBOT_MODEL_CASES)
 def generate_test_description(ursim_type, driver_type):
     return generate_driver_test_description_for_model(
-        ur_type=driver_type, ursim_type=ursim_type, hw_name=HW_NAME
+        ur_type=driver_type, ursim_type=ursim_type, hw_name=driver_type
     )
 
 
@@ -119,7 +117,7 @@ class RobotModelStartupTest(unittest.TestCase):
             f"driver={driver_type}, got {len(hardware_info.component)}",
         )
         component = hardware_info.component[0]
-        self.assertEqual(component.name, HW_NAME)
+        self.assertEqual(component.name, driver_type)
         return component.state
 
     def test_driver_starts_for_robot_model(self, ursim_type, driver_type):
@@ -147,12 +145,12 @@ class RobotModelStartupTest(unittest.TestCase):
 
         target_state = LifecycleState(id=LifecycleState.PRIMARY_STATE_INACTIVE, label="inactive")
         result = self._controller_manager_interface.set_hardware_component_state(
-            name=HW_NAME, target_state=target_state
+            name=driver_type, target_state=target_state
         )
         if ursim_type == driver_type:
             self.assertTrue(
                 result.ok,
-                f"Hardware component '{HW_NAME}' for ursim={ursim_type}, "
+                f"Hardware component '{driver_type}' for ursim={ursim_type}, "
                 f"driver={driver_type} did not reach state '{target_state.label}' but is in state '{result.state.label}'",
             )
             self.assertEqual(result.state, target_state)
