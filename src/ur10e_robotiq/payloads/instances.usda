@@ -1,0 +1,888 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "URDF USD Converter v0.1.3"
+    }
+    doc = """Generated from Composed Stage of root layer /tmp/tmpxd5d2_3b/ur10e_robotiq.usdc
+
+
+Generated from Composed Stage of root layer /tmp/urdf_import_ur10e_robotiq_vxubc7dy/usdex_ur10e_robotiq/ur10e_robotiq.usdc
+
+
+Generated from Composed Stage of root layer /tmp/urdf_import_ur10e_robotiq_vxubc7dy/temp_ur10e_robotiq/ur10e_robotiq.usd
+
+
+Generated from Composed Stage of root layer /home/arvr/ros2_ws/MultiArm-Pick-and-Place/src/ur10e_robotiq/payloads/base.usd
+"""
+    kilogramsPerUnit = 1
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Scope "Instances"
+{
+    def Xform "tn__eSeriesUR10e010_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e010_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e010_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e010_sFY7/VisualMaterials/JointGrey>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "JointGrey" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/JointGrey>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e043_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e043_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e043_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e043_sFY7/VisualMaterials/Black>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "Black" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/Black>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e023_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e023_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e023_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e023_sFY7/VisualMaterials/JointGrey_1>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "JointGrey_1" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/JointGrey>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e044_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e044_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e044_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e044_sFY7/VisualMaterials/Black_1>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "Black_1" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/Black>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e045_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e045_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e045_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e045_sFY7/VisualMaterials/URBlue>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "URBlue" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/URBlue>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e028_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e028_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e028_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e028_sFY7/VisualMaterials/LinkGrey>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "LinkGrey" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/LinkGrey>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e046_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e046_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e046_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e046_sFY7/VisualMaterials/URBlue_1>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "URBlue_1" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/URBlue>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e047_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e047_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e047_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e047_sFY7/VisualMaterials/URBlue_1>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "URBlue_1" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/URBlue>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e049_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e049_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e049_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e049_sFY7/VisualMaterials/JointGrey_2>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "JointGrey_2" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/JointGrey>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e050_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e050_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e050_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e050_sFY7/VisualMaterials/Black_2>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "Black_2" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/Black>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e051_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e051_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e051_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e051_sFY7/VisualMaterials/JointGrey_2>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "JointGrey_2" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/JointGrey>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e052_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e052_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e052_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e052_sFY7/VisualMaterials/Black_2>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "Black_2" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/Black>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e053_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e053_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e053_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e053_sFY7/VisualMaterials/Black_2>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "Black_2" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/Black>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e031_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e031_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e031_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e031_sFY7/VisualMaterials/LinkGrey_1>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "LinkGrey_1" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/LinkGrey>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e054_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e054_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e054_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e054_sFY7/VisualMaterials/JointGrey_3>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "JointGrey_3" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/JointGrey>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e055_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e055_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e055_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e055_sFY7/VisualMaterials/Black_3>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "Black_3" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/Black>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e056_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e056_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e056_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e056_sFY7/VisualMaterials/URBlue_2>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "URBlue_2" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/URBlue>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e057_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e057_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e057_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e057_sFY7/VisualMaterials/JointGrey_3>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "JointGrey_3" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/JointGrey>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e058_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e058_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e058_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e058_sFY7/VisualMaterials/Black_3>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "Black_3" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/Black>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e059_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e059_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e059_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e059_sFY7/VisualMaterials/Black_3>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "Black_3" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/Black>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e037_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e037_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e037_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e037_sFY7/VisualMaterials/JointGrey_4>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "JointGrey_4" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/JointGrey>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e060_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e060_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e060_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e060_sFY7/VisualMaterials/URBlue_3>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "URBlue_3" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/URBlue>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e061_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e061_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e061_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e061_sFY7/VisualMaterials/Black_4>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "Black_4" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/Black>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e040_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e040_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e040_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e040_sFY7/VisualMaterials/JointGrey_5>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "JointGrey_5" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/JointGrey>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e062_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e062_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e062_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e062_sFY7/VisualMaterials/URBlue_4>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "URBlue_4" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/URBlue>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "tn__eSeriesUR10e063_sFY7" (
+        prepend references = @./geometries.usd@</Geometries/tn__eSeriesUR10e063_sFY7>
+    )
+    {
+        over "tn__eSeriesUR10e063_sFY7" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/tn__eSeriesUR10e063_sFY7/VisualMaterials/Black_5>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "Black_5" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/Black>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "wrist3" (
+        prepend references = @./geometries.usd@</Geometries/wrist3>
+    )
+    {
+        over "wrist3" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/wrist3/VisualMaterials/LinkGrey_2>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "LinkGrey_2" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/LinkGrey>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "robotiq_2f_140_base_link" (
+        prepend references = @./geometries.usd@</Geometries/robotiq_2f_140_base_link>
+    )
+    {
+        over "robotiq_2f_140_base_link" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/robotiq_2f_140_base_link/VisualMaterials/material_1>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "material_1" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/material_1>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "robotiq_2f_140_outer_knuckle" (
+        prepend references = @./geometries.usd@</Geometries/robotiq_2f_140_outer_knuckle>
+    )
+    {
+        over "robotiq_2f_140_outer_knuckle" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/robotiq_2f_140_outer_knuckle/VisualMaterials/material_2>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "material_2" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/material_2>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "robotiq_2f_140_outer_knuckle_1" (
+        prepend references = @./geometries.usd@</Geometries/robotiq_2f_140_outer_knuckle>
+    )
+    {
+        over "robotiq_2f_140_outer_knuckle" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/robotiq_2f_140_outer_knuckle_1/VisualMaterials/material_7>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "material_7" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/material_2>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "robotiq_2f_140_outer_finger" (
+        prepend references = @./geometries.usd@</Geometries/robotiq_2f_140_outer_finger>
+    )
+    {
+        over "robotiq_2f_140_outer_finger" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/robotiq_2f_140_outer_finger/VisualMaterials/material_3>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "material_3" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/material_1>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "robotiq_2f_140_outer_finger_1" (
+        prepend references = @./geometries.usd@</Geometries/robotiq_2f_140_outer_finger>
+    )
+    {
+        over "robotiq_2f_140_outer_finger" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/robotiq_2f_140_outer_finger_1/VisualMaterials/material_8>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "material_8" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/material_1>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "robotiq_2f_140_inner_finger" (
+        prepend references = @./geometries.usd@</Geometries/robotiq_2f_140_inner_finger>
+    )
+    {
+        over "robotiq_2f_140_inner_finger" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/robotiq_2f_140_inner_finger/VisualMaterials/material_4>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "material_4" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/material_1>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "robotiq_2f_140_inner_finger_1" (
+        prepend references = @./geometries.usd@</Geometries/robotiq_2f_140_inner_finger>
+    )
+    {
+        over "robotiq_2f_140_inner_finger" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/robotiq_2f_140_inner_finger_1/VisualMaterials/material_9>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "material_9" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/material_1>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "robotiq_2f_140_inner_knuckle" (
+        prepend references = @./geometries.usd@</Geometries/robotiq_2f_140_inner_knuckle>
+    )
+    {
+        over "robotiq_2f_140_inner_knuckle" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/robotiq_2f_140_inner_knuckle/VisualMaterials/material_6>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "material_6" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/material_1>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "robotiq_2f_140_inner_knuckle_1" (
+        prepend references = @./geometries.usd@</Geometries/robotiq_2f_140_inner_knuckle>
+    )
+    {
+        over "robotiq_2f_140_inner_knuckle" (
+            apiSchemas = ["MaterialBindingAPI", "PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/robotiq_2f_140_inner_knuckle_1/VisualMaterials/material_11>
+            token physics:approximation = "convexDecomposition"
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "material_11" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/material_1>
+            )
+            {
+            }
+        }
+    }
+}
+
