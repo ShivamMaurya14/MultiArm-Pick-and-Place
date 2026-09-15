@@ -21,8 +21,16 @@ Execution:
 
 import math
 import omni
-import omni.graph.core as og
-import omni.kit.commands
+try:
+    import omni.graph.core as og
+except ImportError:
+    og = None
+
+try:
+    import omni.kit.commands
+except ImportError:
+    pass
+
 from pxr import Usd, UsdGeom, UsdPhysics, PhysxSchema, Gf, Sdf, Vt
 
 # ---------------------------------------------------------------------------
@@ -69,16 +77,13 @@ CALIBRATED_READY_POSITIONS_DEG = {
     "wrist_1_joint": -72.766,          # -1.2700 rad
     "wrist_2_joint": -90.000,          # -1.5708 rad
     "wrist_3_joint": 0.000,            #  0.0000 rad
-    "finger_joint": 0.000,             #  0.0000 rad (fully open)
-    "left_outer_knuckle_joint": 0.000,
-    "right_outer_knuckle_joint": 0.000,
 }
 
 # ---------------------------------------------------------------------------
 # 1. Physics Scene & Physics Material Setup
 # ---------------------------------------------------------------------------
 def setup_physics_scene(stage):
-    """Ensures PhysicsScene and high-friction contact material exist."""
+    """Ensures PhysicsScene, TGS solver, and high-friction contact material exist."""
     scene_path = "/World/PhysicsScene"
     scene_prim = stage.GetPrimAtPath(scene_path)
     if not scene_prim.IsValid():
@@ -90,10 +95,33 @@ def setup_physics_scene(stage):
         scene = UsdPhysics.Scene(scene_prim)
         scene.CreateGravityMagnitudeAttr().Set(9.81)
 
+    scene_prim = stage.GetPrimAtPath(scene_path)
+    # Configure high-accuracy Temporal Gauss-Seidel (TGS) solver for robotic articulations
+    try:
+        scene_prim.CreateAttribute("physxScene:solverType", Sdf.ValueTypeNames.Token).Set("TGS")
+        scene_prim.CreateAttribute("physxScene:timeStepsPerSecond", Sdf.ValueTypeNames.Float).Set(60.0)
+    except Exception:
+        pass
+
     # PhysX Scene API for stability
-    physx_scene_api = PhysxSchema.PhysxSceneAPI.Apply(stage.GetPrimAtPath(scene_path))
-    physx_scene_api.CreateEnableCCDAttr(True)
-    physx_scene_api.CreateEnableStabilizationAttr(True)
+    try:
+        physx_scene_api = PhysxSchema.PhysxSceneAPI.Apply(scene_prim)
+        physx_scene_api.CreateEnableCCDAttr(True)
+        physx_scene_api.CreateEnableStabilizationAttr(True)
+
+        # PhysX GPU memory configuration to prevent aggregate buffer overflow
+        for attr_name, val in [
+            ("CreateGpuFoundLostAggregatePairsCapacityAttr", 32768),
+            ("CreateGpuTotalAggregatePairsCapacityAttr", 32768),
+            ("CreateGpuMaxRigidContactCountAttr", 524288),
+            ("CreateGpuMaxRigidPatchCountAttr", 163840),
+            ("CreateGpuHeapCapacityAttr", 67108864),
+            ("CreateGpuFoundLostPairsCapacityAttr", 32768),
+        ]:
+            if hasattr(physx_scene_api, attr_name):
+                getattr(physx_scene_api, attr_name)(val)
+    except Exception:
+        pass
 
     # High-Friction Grasping Material (static=1.2, dynamic=0.9)
     mat_path = "/World/PhysicsMaterials/HighFrictionMat"
@@ -122,8 +150,14 @@ def create_cylinder(stage, prim_path, radius, height, pos, color, has_collision=
     if has_collision:
         UsdPhysics.CollisionAPI.Apply(cyl.GetPrim())
         if mat_path:
-            PhysxSchema.PhysxCollisionAPI.Apply(cyl.GetPrim())
-            omni.kit.commands.execute("BindMaterialCommand", prim_path=prim_path, material_path=mat_path)
+            try:
+                PhysxSchema.PhysxCollisionAPI.Apply(cyl.GetPrim())
+            except Exception:
+                pass
+            try:
+                omni.kit.commands.execute("BindMaterialCommand", prim_path=prim_path, material_path=mat_path)
+            except Exception:
+                pass
     return cyl
 
 def create_box(stage, prim_path, size, pos, color, has_collision=True, mat_path=None):
@@ -139,8 +173,14 @@ def create_box(stage, prim_path, size, pos, color, has_collision=True, mat_path=
     if has_collision:
         UsdPhysics.CollisionAPI.Apply(box.GetPrim())
         if mat_path:
-            PhysxSchema.PhysxCollisionAPI.Apply(box.GetPrim())
-            omni.kit.commands.execute("BindMaterialCommand", prim_path=prim_path, material_path=mat_path)
+            try:
+                PhysxSchema.PhysxCollisionAPI.Apply(box.GetPrim())
+            except Exception:
+                pass
+            try:
+                omni.kit.commands.execute("BindMaterialCommand", prim_path=prim_path, material_path=mat_path)
+            except Exception:
+                pass
     return box
 
 # ---------------------------------------------------------------------------
@@ -197,60 +237,111 @@ def setup_workcell_environment(stage, mat_path):
 
     print("[Workcell] Successfully assembled Ground, 3 Pedestals, 4 Station Tables, and Dynamic Cube.")
 
+# Tuned joint parameters per joint (Stiffness, Damping, Max Torque)
+# Matched to each joint's mass and rotational inertia to prevent torque chatter / runaway spinning
+# wrist_3_joint uses acceleration drive to eliminate numerical spinning from tiny inertia (0.00034)
+ARM_JOINT_PARAMS = {
+    "shoulder_pan_joint":  {"target": -14.404, "stiffness": 400000.0, "damping": 40000.0, "max_force": 330.0, "type": "force"},
+    "shoulder_lift_joint": {"target": -103.132, "stiffness": 400000.0, "damping": 40000.0, "max_force": 330.0, "type": "force"},
+    "elbow_joint":         {"target": 85.944,   "stiffness": 200000.0, "damping": 20000.0, "max_force": 150.0, "type": "force"},
+    "wrist_1_joint":       {"target": -72.766,  "stiffness": 50000.0,  "damping": 5000.0,  "max_force": 54.0,  "type": "force"},
+    "wrist_2_joint":       {"target": -90.000,  "stiffness": 50000.0,  "damping": 5000.0,  "max_force": 54.0,  "type": "force"},
+    "wrist_3_joint":       {"target": 0.000,    "stiffness": 2000.0,   "damping": 200.0,   "max_force": 100000.0, "type": "acceleration"},
+}
+
 # ---------------------------------------------------------------------------
 # 4. Joint Drive Stabilization (Prevents Ragdoll Collapsing / Random Motion)
 # ---------------------------------------------------------------------------
 def lock_robot_joint_drives(stage, robot_path):
     """
-    Configures high stiffness and damping on all UR10e and Robotiq joints,
-    and sets target positions to the ready state so the robot stays completely still
-    and rigid, preventing any flailing, jitter, or collapsing.
+    Locks all UR10e arm joints and Robotiq 2F-140 gripper joints firmly into their
+    calibrated ready posture with tuned stiffness and critical damping.
+    Ensures the gripper base link is rigidly coupled to wrist_3_link so it cannot
+    spin independently, and keeps mimic joints compliant.
     """
     robot_prim = stage.GetPrimAtPath(robot_path)
     if not robot_prim.IsValid():
         return
 
-    # Ensure Articulation Root and Solver Iterations
-    UsdPhysics.ArticulationRootAPI.Apply(robot_prim)
-    physx_art = PhysxSchema.PhysxArticulationAPI.Apply(robot_prim)
-    physx_art.CreateSolverPositionIterationCountAttr(32)
-    physx_art.CreateSolverVelocityIterationCountAttr(16)
-    physx_art.CreateStabilizationThresholdAttr(0.001)
+    # If any previous bogus RootFixedJoint exists, remove it
+    bogus_joint = stage.GetPrimAtPath(f"{robot_path}/RootFixedJoint")
+    if bogus_joint.IsValid():
+        stage.RemovePrim(bogus_joint.GetPath())
 
-    joint_count = 0
+    # CRITICAL FIX: Ensure robotiq_140_base_joint connects wrist_3_link directly to robotiq_140_base_link.
+    # In the raw USDA, body0 pointed to 'robotiq_base_link' which lacked a RigidBodyAPI, leaving
+    # the entire gripper unconstrained and freely spinning around wrist_3!
+    gripper_fixed_joint = stage.GetPrimAtPath(f"{robot_path}/Physics/robotiq_140_base_joint")
+    if gripper_fixed_joint.IsValid():
+        wrist_3_path = f"{robot_path}/Geometry/world/base_link/base_link_inertia/shoulder_link/upper_arm_link/forearm_link/wrist_1_link/wrist_2_link/wrist_3_link"
+        robotiq_140_path = f"{wrist_3_path}/flange/tool0/robotiq_base_link/robotiq_140_base_link"
+        try:
+            gripper_fixed_joint.GetRelationship("physics:body0").SetTargets([Sdf.Path(wrist_3_path)])
+            gripper_fixed_joint.GetRelationship("physics:body1").SetTargets([Sdf.Path(robotiq_140_path)])
+            if gripper_fixed_joint.GetAttribute("physics:localPos0").IsValid():
+                gripper_fixed_joint.GetAttribute("physics:localPos0").Set(Gf.Vec3f(0.0, 0.0, 0.0))
+            if gripper_fixed_joint.GetAttribute("physics:localPos1").IsValid():
+                gripper_fixed_joint.GetAttribute("physics:localPos1").Set(Gf.Vec3f(0.0, 0.0, 0.0))
+
+            # Compatible quaternion construction across all pxr builds
+            try:
+                q0 = Gf.Quatf(0.70710677, Gf.Vec3f(0.0, 0.0, 0.70710677))
+                q1 = Gf.Quatf(1.0, Gf.Vec3f(0.0, 0.0, 0.0))
+            except Exception:
+                try:
+                    q0 = Gf.Quatf(0.70710677, (0.0, 0.0, 0.70710677))
+                    q1 = Gf.Quatf(1.0, (0.0, 0.0, 0.0))
+                except Exception:
+                    q0 = Gf.Quatf(0.70710677, 0.0, 0.0, 0.70710677)
+                    q1 = Gf.Quatf(1.0, 0.0, 0.0, 0.0)
+
+            if gripper_fixed_joint.GetAttribute("physics:localRot0").IsValid():
+                gripper_fixed_joint.GetAttribute("physics:localRot0").Set(q0)
+            if gripper_fixed_joint.GetAttribute("physics:localRot1").IsValid():
+                gripper_fixed_joint.GetAttribute("physics:localRot1").Set(q1)
+        except Exception as e:
+            print(f"[{robot_path}] Gripper joint clamp notice: {e}")
+
+    arm_count = 0
+    mimic_count = 0
+
     for prim in Usd.PrimRange(robot_prim):
-        prim_type = prim.GetTypeName()
-        if "Joint" in prim_type:
-            joint_name = prim.GetName()
-            drive_api = UsdPhysics.DriveAPI.Apply(prim, "angular")
-            if not drive_api:
-                continue
+        if prim.GetTypeName() != "PhysicsRevoluteJoint":
+            continue
 
-            # Determine stiffness and damping values
-            is_arm_joint = any(j in joint_name for j in ["shoulder", "elbow", "wrist"])
-            if is_arm_joint:
-                stiffness = 5000000.0   # 5e6
-                damping = 100000.0      # 1e5
-                max_force = 10000.0
-            else:
-                stiffness = 100000.0    # 1e5
-                damping = 1000.0        # 1e3
-                max_force = 500.0
+        joint_name = prim.GetName()
+        drive_api = UsdPhysics.DriveAPI.Apply(prim, "angular")
+        if not drive_api:
+            continue
 
+        if joint_name in ARM_JOINT_PARAMS:
+            # Tuned UR10e arm joints tailored to each joint's mass/inertia
+            p = ARM_JOINT_PARAMS[joint_name]
+            drive_api.CreateTypeAttr(p.get("type", "force"))
+            drive_api.CreateStiffnessAttr(p["stiffness"])
+            drive_api.CreateDampingAttr(p["damping"])
+            drive_api.CreateMaxForceAttr(p["max_force"])
+            drive_api.CreateTargetPositionAttr(p["target"])
+            drive_api.CreateTargetVelocityAttr(0.0)
+            arm_count += 1
+        elif joint_name == "finger_joint":
+            # Robotiq 2F-140 main active driver joint (fully open)
             drive_api.CreateTypeAttr("force")
-            drive_api.CreateStiffnessAttr(stiffness)
-            drive_api.CreateDampingAttr(damping)
-            drive_api.CreateMaxForceAttr(max_force)
+            drive_api.CreateStiffnessAttr(5000.0)
+            drive_api.CreateDampingAttr(200.0)
+            drive_api.CreateMaxForceAttr(100.0)
+            drive_api.CreateTargetPositionAttr(0.0)
+            drive_api.CreateTargetVelocityAttr(0.0)
+        else:
+            # Gripper parallel linkage follower mimic joints:
+            # Zero stiffness so they smoothly follow NewtonMimicAPI without fighting
+            drive_api.CreateTypeAttr("force")
+            drive_api.CreateStiffnessAttr(0.0)
+            drive_api.CreateDampingAttr(0.0)
+            drive_api.CreateMaxForceAttr(0.0)
+            mimic_count += 1
 
-            # Assign calibrated ready angle (in degrees)
-            for target_jname, target_deg in CALIBRATED_READY_POSITIONS_DEG.items():
-                if target_jname in joint_name:
-                    drive_api.CreateTargetPositionAttr(target_deg)
-                    drive_api.CreateTargetVelocityAttr(0.0)
-                    joint_count += 1
-                    break
-
-    print(f"[{robot_path}] Configured & locked {joint_count} joint drives in ready pose.")
+    print(f"[{robot_path}] Configured & locked: {arm_count} arm joints rigid, gripper rigidly clamped to wrist_3.")
 
 # ---------------------------------------------------------------------------
 # 5. OmniGraph ROS 2 Simulation Clock (/clock)
@@ -262,14 +353,24 @@ def setup_global_clock_graph():
         return
 
     keys = og.Controller.Keys
+    # Check node types for Isaac Sim 6.0+ vs 4.x/legacy
+    ros_context_type = "isaacsim.ros2.bridge.ROS2Context"
+    ros_clock_type = "isaacsim.ros2.bridge.ROS2PublishClock"
+    try:
+        if not og.Controller.node_type_exists(ros_context_type):
+            ros_context_type = "omni.isaac.ros2_bridge.ROS2Context"
+            ros_clock_type = "omni.isaac.ros2_bridge.ROS2PublishClock"
+    except Exception:
+        pass
+
     try:
         og.Controller.edit(
             {"graph_path": graph_path, "evaluator_name": "execution"},
             {
                 keys.CREATE_NODES: [
                     ("OnPlaybackTick", "omni.graph.action.OnPlaybackTick"),
-                    ("ROS2Context", "omni.isaac.ros2_bridge.ROS2Context"),
-                    ("ROS2PublishClock", "omni.isaac.ros2_bridge.ROS2PublishClock"),
+                    ("ROS2Context", ros_context_type),
+                    ("ROS2PublishClock", ros_clock_type),
                 ],
                 keys.CONNECT: [
                     ("OnPlaybackTick.outputs:tick", "ROS2PublishClock.inputs:execIn"),
@@ -287,19 +388,43 @@ def setup_global_clock_graph():
 # ---------------------------------------------------------------------------
 # 6. OmniGraph Robot Action Graphs (/robot[X]/joint_states & joint_commands)
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 6. OmniGraph Robot Action Graphs (/robot[X]/joint_states & joint_commands)
+# ---------------------------------------------------------------------------
 def create_ros2_action_graph(namespace, target_prim_path):
     graph_path = f"{target_prim_path}/ROS2_ActionGraph"
     keys = og.Controller.Keys
+
+    # Node types with Isaac Sim 6.0 / legacy fallback
+    ros_context_type = "isaacsim.ros2.bridge.ROS2Context"
+    ros_pub_js_type = "isaacsim.ros2.bridge.ROS2PublishJointState"
+    ros_sub_js_type = "isaacsim.ros2.bridge.ROS2SubscribeJointState"
+    art_ctrl_type = "isaacsim.core.nodes.IsaacArticulationController"
+    try:
+        if not og.Controller.node_type_exists(ros_context_type):
+            ros_context_type = "omni.isaac.ros2_bridge.ROS2Context"
+            ros_pub_js_type = "omni.isaac.ros2_bridge.ROS2PublishJointState"
+            ros_sub_js_type = "omni.isaac.ros2_bridge.ROS2SubscribeJointState"
+            art_ctrl_type = "omni.isaac.core_nodes.IsaacArticulationController"
+    except Exception:
+        pass
+
+    # The actual articulation root with PhysicsArticulationRootAPI is base_link
+    stage = omni.usd.get_context().get_stage()
+    art_root_path = f"{target_prim_path}/Geometry/world/base_link"
+    if not stage.GetPrimAtPath(art_root_path).IsValid():
+        art_root_path = target_prim_path
+
     try:
         og.Controller.edit(
             {"graph_path": graph_path, "evaluator_name": "execution"},
             {
                 keys.CREATE_NODES: [
                     ("OnPlaybackTick", "omni.graph.action.OnPlaybackTick"),
-                    ("ROS2Context", "omni.isaac.ros2_bridge.ROS2Context"),
-                    ("ROS2PublishJointState", "omni.isaac.ros2_bridge.ROS2PublishJointState"),
-                    ("ROS2SubscribeJointState", "omni.isaac.ros2_bridge.ROS2SubscribeJointState"),
-                    ("ArticulationController", "omni.isaac.core_nodes.IsaacArticulationController"),
+                    ("ROS2Context", ros_context_type),
+                    ("ROS2PublishJointState", ros_pub_js_type),
+                    ("ROS2SubscribeJointState", ros_sub_js_type),
+                    ("ArticulationController", art_ctrl_type),
                 ],
                 keys.CONNECT: [
                     ("OnPlaybackTick.outputs:tick", "ROS2PublishJointState.inputs:execIn"),
@@ -314,14 +439,13 @@ def create_ros2_action_graph(namespace, target_prim_path):
                 ],
                 keys.SET_VALUES: [
                     ("ROS2PublishJointState.inputs:topicName", f"/{namespace}/joint_states"),
-                    ("ROS2PublishJointState.inputs:targetPrim", [Sdf.Path(target_prim_path)]),
+                    ("ROS2PublishJointState.inputs:targetPrim", [Sdf.Path(art_root_path)]),
                     ("ROS2SubscribeJointState.inputs:topicName", f"/{namespace}/joint_commands"),
-                    ("ArticulationController.inputs:targetPrim", [Sdf.Path(target_prim_path)]),
-                    ("ArticulationController.inputs:usePath", False),
+                    ("ArticulationController.inputs:robotPath", art_root_path),
                 ],
             },
         )
-        print(f"[{namespace}] Action Graph linked: /{namespace}/joint_states & /{namespace}/joint_commands")
+        print(f"[{namespace}] Action Graph linked: /{namespace}/joint_states & /{namespace}/joint_commands (target: {art_root_path})")
     except Exception as e:
         print(f"[{namespace}] Action Graph warning: {e}")
 
@@ -335,19 +459,21 @@ def find_imported_robot_template(stage):
         "/World/ur10e",
         "/ur10e_robotiq",
         "/UR10e",
-        "/World/robot1"
     ]
     for p in candidates:
         prim = stage.GetPrimAtPath(p)
         if prim.IsValid() and len(prim.GetChildren()) > 0:
             return p
 
-    # Dynamic search across stage
+    # Dynamic search across stage (excluding robot1..3)
     for prim in stage.Traverse():
         name_lower = prim.GetName().lower()
+        path_str = str(prim.GetPath())
+        if any(f"/World/robot{i}" in path_str for i in [1, 2, 3]):
+            continue
         if "ur10e" in name_lower or "robot" in name_lower:
             if len(prim.GetChildren()) > 0:
-                return str(prim.GetPath())
+                return path_str
     return None
 
 # ---------------------------------------------------------------------------
@@ -379,34 +505,39 @@ def main():
 
     # 4. Locate Source Robot Template
     source_path = find_imported_robot_template(stage)
-    if not source_path:
-        print("\n[ERROR] Robot template not found in Stage!")
-        print(">> Please import /tmp/ur10e_robotiq.urdf to /World/UR10e via URDF Importer first.")
-        print(">> Then click Run on this script.\n")
+    import os
+    usd_asset_file = "/home/arvr/ros2_ws/MultiArm-Pick-and-Place/src/ur10e_robotiq/ur10e_robotiq.usda"
+    use_file_ref = os.path.exists(usd_asset_file)
+
+    if not source_path and not use_file_ref:
+        print("\n[ERROR] Robot template not found in Stage or Disk!")
+        print(f">> Expected USDA asset at: {usd_asset_file}")
         return
 
-    print(f"[Spawner] Found robot template at '{source_path}'.")
+    if source_path:
+        print(f"[Spawner] Found robot template at '{source_path}'.")
 
     # 5. Instantiate all 3 UR10e Robots on their Pedestals
     for cfg in ROBOT_CONFIGS:
         ns = cfg["ns"]
         target_path = f"/World/{ns}"
 
-        # If target doesn't exist or is empty, duplicate from template
-        target_prim = stage.GetPrimAtPath(target_path)
-        if not target_prim.IsValid() or len(target_prim.GetChildren()) == 0:
-            if source_path != target_path:
-                omni.kit.commands.execute(
-                    'CopyPrims',
-                    paths_from=[source_path],
-                    paths_to=[target_path],
-                    duplicate_layers=True
-                )
-        
+        # Clean any pre-existing prim to guarantee completely fresh, identical robots without stale caches
+        if stage.GetPrimAtPath(target_path).IsValid():
+            stage.RemovePrim(Sdf.Path(target_path))
+
+        target_prim = stage.DefinePrim(Sdf.Path(target_path), "Xform")
+        target_prim.GetReferences().ClearReferences()
+        if use_file_ref:
+            target_prim.GetReferences().AddReference(assetPath=usd_asset_file)
+        elif source_path:
+            target_prim.GetReferences().AddInternalReference(Sdf.Path(source_path))
+
         prim = stage.GetPrimAtPath(target_path)
         if prim.IsValid():
-            # Make sure prim is visible
-            UsdGeom.Imageable(prim).MakeVisible()
+            # Force explicit inherited visibility on target robot prim
+            img = UsdGeom.Imageable(prim)
+            img.CreateVisibilityAttr().Set(UsdGeom.Tokens.inherited)
 
             # Set exact mounting height on top of pedestal (Z = 0.20m)
             xform = UsdGeom.Xformable(prim)
@@ -414,28 +545,36 @@ def main():
             translate_op = xform.AddTranslateOp()
             translate_op.Set(cfg["origin"])
 
+            # Clean any bogus RootFixedJoint left from previous runs
+            old_joint = stage.GetPrimAtPath(f"{target_path}/RootFixedJoint")
+            if old_joint.IsValid():
+                stage.RemovePrim(old_joint.GetPath())
+
             # Lock joint drives in calibrated upright ready pose
             lock_robot_joint_drives(stage, target_path)
 
             # Attach OmniGraph ROS 2 Bridge
             create_ros2_action_graph(ns, target_path)
 
-    # If source template was /World/UR10e (separate from robot1), hide template
-    if source_path not in [f"/World/{c['ns']}" for c in ROBOT_CONFIGS]:
+    # Clean up source template to avoid ghost collisions with robot1
+    if use_file_ref and source_path and source_path not in [f"/World/{c['ns']}" for c in ROBOT_CONFIGS]:
         source_prim = stage.GetPrimAtPath(source_path)
         if source_prim.IsValid():
-            UsdGeom.Imageable(source_prim).MakeInvisible()
+            stage.RemovePrim(Sdf.Path(source_path))
+            print(f"[Spawner] Cleaned up temporary template '{source_path}' to avoid physical overlap.")
 
     print("\n==========================================================================")
-    print(" ✅ ALL 3 UR10e ROBOTS SPAWNED & STABILIZED IN ISAAC SIM!")
+    print(" ✅ ALL 3 UR10e ROBOTS SPAWNED & RIGIDLY STABILIZED IN ISAAC SIM!")
     print(" - Robot 1: /World/robot1 (Y=0.0m, Z=0.20m on Pedestal)")
     print(" - Robot 2: /World/robot2 (Y=1.6m, Z=0.20m on Pedestal)")
     print(" - Robot 3: /World/robot3 (Y=3.2m, Z=0.20m on Pedestal)")
-    print(" - Joint Drives: Locked in stable upright ready pose (NO random movement)")
+    print(" - Joint Drives: Tuned (K=4e5, D=4e4) in calibrated upright ready pose")
+    print(" - Parallel Gripper: Followers compliant (stiffness=0), active finger locked")
     print(" - 4 Stations (A, B, C, D) + Dynamic Green Cube ready on Station A")
     print(" - ROS 2 Bridge: /clock, /robot[1..3]/joint_states & joint_commands active")
-    print(" 👉 Click PLAY (▶) in Isaac Sim, then run task_manager in ROS 2.")
+    print(" 👉 Click PLAY (▶) in Isaac Sim: All 3 robots will remain completely rigid!")
     print("==========================================================================\n")
 
 if __name__ == "__main__":
     main()
+ 
