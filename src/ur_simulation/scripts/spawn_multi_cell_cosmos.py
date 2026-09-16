@@ -66,6 +66,28 @@ def setup_physics_scene(stage):
     physx_scene_api.CreateEnableStabilizationAttr(True)
     physx_scene_api.CreateBroadphaseTypeAttr("GPU")  # Fast GPU Broadphase for 90 robots
 
+    # Configure high-accuracy Temporal Gauss-Seidel (TGS) solver for robotic articulations
+    try:
+        scene_prim.CreateAttribute("physxScene:solverType", Sdf.ValueTypeNames.Token).Set("TGS")
+        scene_prim.CreateAttribute("physxScene:timeStepsPerSecond", Sdf.ValueTypeNames.Float).Set(60.0)
+    except Exception:
+        pass
+
+    # PhysX GPU memory configuration to prevent aggregate buffer overflow
+    for attr_name, val in [
+        ("CreateGpuFoundLostAggregatePairsCapacityAttr", 65536),
+        ("CreateGpuTotalAggregatePairsCapacityAttr", 65536),
+        ("CreateGpuMaxRigidContactCountAttr", 1048576),
+        ("CreateGpuMaxRigidPatchCountAttr", 327680),
+        ("CreateGpuHeapCapacityAttr", 134217728),
+        ("CreateGpuFoundLostPairsCapacityAttr", 65536),
+    ]:
+        if hasattr(physx_scene_api, attr_name):
+            try:
+                getattr(physx_scene_api, attr_name)(val)
+            except Exception:
+                pass
+
     # High-Friction Grasping Material
     mat_path = "/World/PhysicsMaterials/CosmosHighFrictionMat"
     if not stage.GetPrimAtPath(mat_path).IsValid():
@@ -147,46 +169,99 @@ def create_group_cameras(stage, group_path, center_x, center_y):
 # ---------------------------------------------------------------------------
 def configure_robot_physics_and_sensors(stage, robot_path):
     """
-    Locks joint drives with high stiffness/damping (preventing flailing)
+    Locks joint drives with tuned stiffness/damping (preventing flailing)
     and attaches PhysX Force/Torque sensors to the wrist/tool0 link.
+    Follower mimic joints on Robotiq gripper have zero active stiffness.
     """
     robot_prim = stage.GetPrimAtPath(robot_path)
     if not robot_prim.IsValid():
         return
 
-    UsdPhysics.ArticulationRootAPI.Apply(robot_prim)
-    physx_art = PhysxSchema.PhysxArticulationAPI.Apply(robot_prim)
-    physx_art.CreateSolverPositionIterationCountAttr(32)
-    physx_art.CreateSolverVelocityIterationCountAttr(16)
+    # CRITICAL FIX: Ensure robotiq_140_base_joint connects wrist_3_link directly to robotiq_140_base_link.
+    gripper_fixed_joint = stage.GetPrimAtPath(f"{robot_path}/Physics/robotiq_140_base_joint")
+    if gripper_fixed_joint.IsValid():
+        wrist_3_path = f"{robot_path}/Geometry/world/base_link/base_link_inertia/shoulder_link/upper_arm_link/forearm_link/wrist_1_link/wrist_2_link/wrist_3_link"
+        robotiq_140_path = f"{wrist_3_path}/flange/tool0/robotiq_base_link/robotiq_140_base_link"
+        try:
+            gripper_fixed_joint.GetRelationship("physics:body0").SetTargets([Sdf.Path(wrist_3_path)])
+            gripper_fixed_joint.GetRelationship("physics:body1").SetTargets([Sdf.Path(robotiq_140_path)])
+            if gripper_fixed_joint.GetAttribute("physics:localPos0").IsValid():
+                gripper_fixed_joint.GetAttribute("physics:localPos0").Set(Gf.Vec3f(0.0, 0.0, 0.0))
+            if gripper_fixed_joint.GetAttribute("physics:localPos1").IsValid():
+                gripper_fixed_joint.GetAttribute("physics:localPos1").Set(Gf.Vec3f(0.0, 0.0, 0.0))
+
+            try:
+                q0 = Gf.Quatf(0.70710677, Gf.Vec3f(0.0, 0.0, 0.70710677))
+                q1 = Gf.Quatf(1.0, Gf.Vec3f(0.0, 0.0, 0.0))
+            except Exception:
+                try:
+                    q0 = Gf.Quatf(0.70710677, (0.0, 0.0, 0.70710677))
+                    q1 = Gf.Quatf(1.0, (0.0, 0.0, 0.0))
+                except Exception:
+                    q0 = Gf.Quatf(0.70710677, 0.0, 0.0, 0.70710677)
+                    q1 = Gf.Quatf(1.0, 0.0, 0.0, 0.0)
+
+            if gripper_fixed_joint.GetAttribute("physics:localRot0").IsValid():
+                gripper_fixed_joint.GetAttribute("physics:localRot0").Set(q0)
+            if gripper_fixed_joint.GetAttribute("physics:localRot1").IsValid():
+                gripper_fixed_joint.GetAttribute("physics:localRot1").Set(q1)
+        except Exception:
+            pass
 
     # 1. Lock Joint Drives
     for prim in Usd.PrimRange(robot_prim):
-        if "Joint" in prim.GetTypeName():
-            joint_name = prim.GetName()
-            drive_api = UsdPhysics.DriveAPI.Apply(prim, "angular")
-            if drive_api:
-                is_arm = any(j in joint_name for j in ["shoulder", "elbow", "wrist"])
-                stiffness = 5000000.0 if is_arm else 100000.0
-                damping = 100000.0 if is_arm else 1000.0
-                max_force = 10000.0 if is_arm else 500.0
+        if prim.GetTypeName() != "PhysicsRevoluteJoint":
+            continue
 
+        joint_name = prim.GetName()
+        drive_api = UsdPhysics.DriveAPI.Apply(prim, "angular")
+        if not drive_api:
+            continue
+
+        if joint_name in READY_POSE_DEG:
+            target_deg = READY_POSE_DEG[joint_name]
+            if "wrist_3" in joint_name:
+                drive_api.CreateTypeAttr("acceleration")
+                drive_api.CreateStiffnessAttr(2000.0)
+                drive_api.CreateDampingAttr(200.0)
+                drive_api.CreateMaxForceAttr(100000.0)
+            elif "wrist" in joint_name:
                 drive_api.CreateTypeAttr("force")
-                drive_api.CreateStiffnessAttr(stiffness)
-                drive_api.CreateDampingAttr(damping)
-                drive_api.CreateMaxForceAttr(max_force)
+                drive_api.CreateStiffnessAttr(50000.0)
+                drive_api.CreateDampingAttr(5000.0)
+                drive_api.CreateMaxForceAttr(54.0)
+            elif "elbow" in joint_name:
+                drive_api.CreateTypeAttr("force")
+                drive_api.CreateStiffnessAttr(200000.0)
+                drive_api.CreateDampingAttr(20000.0)
+                drive_api.CreateMaxForceAttr(150.0)
+            else:
+                drive_api.CreateTypeAttr("force")
+                drive_api.CreateStiffnessAttr(400000.0)
+                drive_api.CreateDampingAttr(40000.0)
+                drive_api.CreateMaxForceAttr(330.0)
 
-                for target_j, target_deg in READY_POSE_DEG.items():
-                    if target_j in joint_name:
-                        drive_api.CreateTargetPositionAttr(target_deg)
-                        drive_api.CreateTargetVelocityAttr(0.0)
-                        break
+            drive_api.CreateTargetPositionAttr(target_deg)
+            drive_api.CreateTargetVelocityAttr(0.0)
+        elif joint_name == "finger_joint":
+            drive_api.CreateTypeAttr("force")
+            drive_api.CreateStiffnessAttr(5000.0)
+            drive_api.CreateDampingAttr(200.0)
+            drive_api.CreateMaxForceAttr(100.0)
+            drive_api.CreateTargetPositionAttr(0.0)
+            drive_api.CreateTargetVelocityAttr(0.0)
+        else:
+            # Gripper parallel linkage follower mimic joints
+            drive_api.CreateTypeAttr("force")
+            drive_api.CreateStiffnessAttr(0.0)
+            drive_api.CreateDampingAttr(0.0)
+            drive_api.CreateMaxForceAttr(0.0)
 
-    # 2. Attach Force-Torque Sensor to Wrist/Tool0
-    for link_name in ["tool0", "wrist_3_link", "robotiq_base_link"]:
-        link_prim = stage.GetPrimAtPath(f"{robot_path}/{link_name}")
-        if link_prim.IsValid():
+    # 2. Attach Force-Torque Sensor to Wrist/Tool0 (searches nested links for Isaac Sim 6.0 compatibility)
+    for prim in Usd.PrimRange(robot_prim):
+        if prim.GetName() in ["tool0", "wrist_3_link", "robotiq_base_link"]:
             # Apply Physx Contact / Joint Force Reporting
-            sensor_api = PhysxSchema.PhysxContactReportAPI.Apply(link_prim)
+            sensor_api = PhysxSchema.PhysxContactReportAPI.Apply(prim)
             sensor_api.CreateThresholdAttr(0.0)  # Report all contact forces
             break
 
@@ -266,24 +341,44 @@ def spawn_triangular_cell(stage, group_idx, center_x, center_y, source_robot_pat
             has_collision=True
         )
 
-        # Clone Robot
+        # Instantiate Robot via USD Reference (robust across Isaac Sim 6.0 and earlier)
+        import os
+        usd_asset_file = "/home/arvr/ros2_ws/MultiArm-Pick-and-Place/src/ur10e_robotiq/ur10e_robotiq.usda"
+        use_file_ref = os.path.exists(usd_asset_file)
+
         robot_path = f"{group_path}/Robot_{arm_idx}"
         target_prim = stage.GetPrimAtPath(robot_path)
-        if not target_prim.IsValid() or len(target_prim.GetChildren()) == 0:
-            omni.kit.commands.execute(
-                'CopyPrims',
-                paths_from=[source_robot_path],
-                paths_to=[robot_path],
-                duplicate_layers=True
-            )
+        needs_instantiation = not target_prim.IsValid() or len(target_prim.GetChildren()) == 0
+
+        if needs_instantiation:
+            if target_prim.IsValid():
+                stage.RemovePrim(Sdf.Path(robot_path))
+            target_prim = stage.DefinePrim(Sdf.Path(robot_path), "Xform")
+            target_prim.GetReferences().ClearReferences()
+            if use_file_ref:
+                target_prim.GetReferences().AddReference(assetPath=usd_asset_file)
+            else:
+                target_prim.GetReferences().AddInternalReference(Sdf.Path(source_robot_path))
 
         prim = stage.GetPrimAtPath(robot_path)
         if prim.IsValid():
-            UsdGeom.Imageable(prim).MakeVisible()
+            # Ensure visible
+            img = UsdGeom.Imageable(prim)
+            img.CreateVisibilityAttr().Set(UsdGeom.Tokens.inherited)
             xform = UsdGeom.Xformable(prim)
             xform.ClearXformOpOrder()
             xform.AddTranslateOp().Set(Gf.Vec3d(rx, ry, rz))
             xform.AddRotateXYZOp().Set(Gf.Vec3f(0.0, 0.0, yaw_deg))
+
+            # Anchor base_link_inertia rigidly to pedestal to prevent drifting/tipping
+            ped_path = f"{group_path}/Pedestal_Arm{arm_idx}"
+            fixed_joint = UsdPhysics.FixedJoint.Define(stage, Sdf.Path(f"{robot_path}/RootFixedJoint"))
+            if stage.GetPrimAtPath(ped_path).IsValid():
+                fixed_joint.CreateBody0Rel().SetTargets([Sdf.Path(ped_path)])
+            for p in Usd.PrimRange(prim):
+                if p.GetName() == "base_link_inertia":
+                    fixed_joint.CreateBody1Rel().SetTargets([Sdf.Path(p.GetPath())])
+                    break
 
             # Configure joint stiffness, damping, ready angles, and force sensor
             configure_robot_physics_and_sensors(stage, robot_path)
@@ -376,10 +471,13 @@ def main():
 
         spawn_triangular_cell(stage, group_idx + 1, cx, cy, source_path, mat_path)
 
-    # Hide the isolated template robot
+    # Move template far away and hide it so its colliders never interfere with the groups
     template_prim = stage.GetPrimAtPath(source_path)
     if template_prim.IsValid():
-        UsdGeom.Imageable(template_prim).MakeInvisible()
+        src_xform = UsdGeom.Xformable(template_prim)
+        src_xform.ClearXformOpOrder()
+        src_xform.AddTranslateOp().Set(Gf.Vec3d(100.0, 100.0, -100.0))
+        UsdGeom.Imageable(template_prim).CreateVisibilityAttr().Set(UsdGeom.Tokens.invisible)
 
     print("\n==========================================================================")
     print(f" 🚀 {TOTAL_GROUPS} TRIANGULAR TRI-ARM GROUPS SPAWNED SUCCESSFULLY IN ISAAC SIM!")
