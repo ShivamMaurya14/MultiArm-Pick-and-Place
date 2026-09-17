@@ -4,13 +4,13 @@
         string creator = "URDF USD Converter v0.1.3"
     }
     defaultPrim = "ur10e_robotiq"
-    doc = """Generated from Composed Stage of root layer /tmp/tmpxd5d2_3b/ur10e_robotiq.usdc
+    doc = """Generated from Composed Stage of root layer /tmp/tmpud4jgsdm/ur10e_robotiq.usdc
 
 
-Generated from Composed Stage of root layer /tmp/urdf_import_ur10e_robotiq_vxubc7dy/usdex_ur10e_robotiq/ur10e_robotiq.usdc
+Generated from Composed Stage of root layer /tmp/urdf_import_ur10e_robotiq_cxgzmoax/usdex_ur10e_robotiq/ur10e_robotiq.usdc
 
 
-Generated from Composed Stage of root layer /tmp/urdf_import_ur10e_robotiq_vxubc7dy/temp_ur10e_robotiq/ur10e_robotiq.usd
+Generated from Composed Stage of root layer /tmp/urdf_import_ur10e_robotiq_cxgzmoax/temp_ur10e_robotiq/ur10e_robotiq.usd
 """
     kilogramsPerUnit = 1
     metersPerUnit = 1
