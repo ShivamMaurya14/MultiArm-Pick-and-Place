@@ -15,7 +15,7 @@ This guide provides an end-to-end, step-by-step walkthrough for creating, config
 | **P4** | **Autonomous Relay Orchestration (A → B → C → D)** | `COMPLETED` | `task_manager.py` state machine, dynamic `/workpiece_marker`, S-curve solver |
 | **P5** | **Synthetic Vision & GPU Object Detection** | `PENDING` | RTX Synthetic Cameras, `isaac_ros_yolov8`, dynamic 6D pose estimators |
 | **P6** | **Multi-Arm Concurrency & Spatial Mutex** | `PENDING` | MoveIt `PlanningSceneWorld`, collision mutex for buffer stations B & C |
-| **P7** | **Physical AI & NVIDIA Cosmos World Models** | `PENDING` | Omniverse Replicator domain randomization, Cosmos world model validation |
+| **P7** | **Physical AI & NVIDIA Cosmos Multi-Cell Spawner** | `COMPLETED (7A)` | `spawn_multi_cell_cosmos.py`, 10 groups (30 robots), direct USDA loading, multi-link tactile & pinhole camera array |
 
 ---
 
@@ -236,15 +236,35 @@ def generate_launch_description():
 
 ## 6. Step 5: Importing the Robot + Gripper into Isaac Sim (Omniverse)
 
-### 1. Using the ROS 2 URDF Importer Extension
-1. In Isaac Sim, open **Isaac Utils → Workflows → URDF Importer**.
-2. **Settings:**
-   - **Fix Base Link:** Checked (anchors the robot base to world).
+### 1. Exporting Standalone URDF directly into `src/`
+Always export the composite URDF directly inside your workspace `src/` tree so references and meshes persist across reboots:
+```bash
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+xacro src/multi_arm_description/urdf/ur10e_robotiq.urdf.xacro > src/multi_arm_description/urdf/ur10e_robotiq.urdf
+```
+
+### 2. Using the ROS 2 URDF Importer Extension (Exact Verified Settings)
+1. In Isaac Sim, open **Isaac Utils → Workflows → URDF Importer** (or **Tools → Robotics → URDF Importer**).
+2. **Exact Verified Settings:**
+   - **Input File:** `/home/arvr/ros2_ws/MultiArm-Pick-and-Place/src/multi_arm_description/urdf/ur10e_robotiq.urdf`
+   - **Target Prim Path:** `/World/UR10e` (or save output USD as `src/ur10e_robotiq/ur10e_robotiq.usda`)
+   - **Fix Base Link:** `Checked` ✅ (Anchors the robot base rigidly to world; never leave unanchored)
    - **Drive Type:** `Position` drive for all joints.
-   - **Default Drive Strength (Stiffness):** `10,000,000` (for arm joints) / `100,000` (for gripper).
-   - **Damping:** `100,000` (arm) / `1,000` (gripper).
-   - **Self Collision:** Enabled.
-3. Select the processed URDF file (generated via `xacro ur10e_robotiq.urdf.xacro > /tmp/robot.urdf`) and click **Import**.
+   - **Default Drive Strength (Stiffness):** `5,000.0` (for arm joints) / `1,000.0` (for gripper).
+   - **Damping:** `1,000.0` (for arm joints) / `50.0` (for gripper).
+   - **Colliders (Collision Mesh):** `Convex Decomposition`
+   - **Self Collision:** `Unchecked` ⬜ *(IMPORTANT: Leaving self-collision enabled causes the wrist_3 and gripper mounting flange colliders to intersect and lock the articulation).*
+   - **ROS Package Search Paths:** Add `/home/arvr/ros2_ws/MultiArm-Pick-and-Place/src`
+3. Click **Import**.
+
+### 3. Direct USDA Instancing Architecture (`ur10e_robotiq.usda`)
+Rather than manually re-importing the URDF or duplicating stages in the GUI, the generated USD is saved to `src/ur10e_robotiq/ur10e_robotiq.usda`. The procedural spawner (`spawn_multi_cell_cosmos.py`) dynamically creates references to this USD directly from disk:
+```python
+robot_prim = stage.DefinePrim(robot_path, "Xform")
+robot_prim.GetReferences().AddReference(usda_path, "/ur10e_robotiq")
+```
+This enables instantiation of **10 groups (30 robots)** while keeping Host RAM under 8.5 GiB and eliminating GUI duplication overhead.
 
 ### 2. Setting Up the ActionGraph / ROS 2 Bridge in Isaac Sim
 For each robot prim in Isaac Sim (`/World/Robot1`, `/World/Robot2`, etc.):

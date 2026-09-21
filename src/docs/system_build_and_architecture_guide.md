@@ -37,8 +37,8 @@ graph TD
 ### Step 1: Unified Description & Gripper Assembly (`multi_arm_description`)
 * **Objective:** Create a unified description attaching the Robotiq 2F-140 gripper to the UR10e flange (`tool0`) with collision-free kinematic chains and multi-robot prefix parameters.
 * **Key Files:**
-  * [`src/multi_arm_description/urdf/ur10e_robotiq.urdf.xacro`](file:///Users/shivammaurya/Desktop/ros2_ws/nextup/multi_arm_ws/MultiArm-Pick-and-Place/src/multi_arm_description/urdf/ur10e_robotiq.urdf.xacro)
-  * [`src/multi_arm_description/launch/view_robot.launch.py`](file:///Users/shivammaurya/Desktop/ros2_ws/nextup/multi_arm_ws/MultiArm-Pick-and-Place/src/multi_arm_description/launch/view_robot.launch.py)
+  * [`src/multi_arm_description/urdf/ur10e_robotiq.urdf.xacro`](src/multi_arm_description/urdf/ur10e_robotiq.urdf.xacro)
+  * [`src/multi_arm_description/launch/view_robot.launch.py`](src/multi_arm_description/launch/view_robot.launch.py)
 * **Technical Details:**
   * Flange fixed joint: attaches `$(arg prefix)tool0` to `$(arg prefix)robotiq_base_link`.
   * Tool Center Point link: calibrated `$(arg prefix)tcp` located `0.23m` along Z (center of fingertips).
@@ -49,9 +49,9 @@ graph TD
 ### Step 2: Three Isolated MoveIt 2 Config Packages
 * **Objective:** Enable true concurrent motion planning by providing independent `move_group` instances in isolated ROS 2 namespaces (`/robot1`, `/robot2`, `/robot3`).
 * **Key Packages:**
-  * [`src/robot1_moveit_config/`](file:///Users/shivammaurya/Desktop/ros2_ws/nextup/multi_arm_ws/MultiArm-Pick-and-Place/src/robot1_moveit_config/) (Namespace: `/robot1`, Prefix: `robot1_`)
-  * [`src/robot2_moveit_config/`](file:///Users/shivammaurya/Desktop/ros2_ws/nextup/multi_arm_ws/MultiArm-Pick-and-Place/src/robot2_moveit_config/) (Namespace: `/robot2`, Prefix: `robot2_`)
-  * [`src/robot3_moveit_config/`](file:///Users/shivammaurya/Desktop/ros2_ws/nextup/multi_arm_ws/MultiArm-Pick-and-Place/src/robot3_moveit_config/) (Namespace: `/robot3`, Prefix: `robot3_`)
+  * [`src/robot1_moveit_config/`](src/robot1_moveit_config/) (Namespace: `/robot1`, Prefix: `robot1_`)
+  * [`src/robot2_moveit_config/`](src/robot2_moveit_config/) (Namespace: `/robot2`, Prefix: `robot2_`)
+  * [`src/robot3_moveit_config/`](src/robot3_moveit_config/) (Namespace: `/robot3`, Prefix: `robot3_`)
 * **Each Package Contains:**
   * **SRDF (`srdf/robotX.srdf.xacro`):** Planning group `robotX_manipulator` (base_link → tcp), `robotX_gripper` (`finger_joint`), and self-collision matrix disabling wrist-to-gripper collisions.
   * **Kinematics (`config/kinematics.yaml`):** KDL kinematics plugin setup.
@@ -64,7 +64,7 @@ graph TD
 
 ### Step 3: Isaac Sim Procedural Spawner & Bridge (`ur_simulation`)
 * **Objective:** Programmatically duplicate the imported robot into three distinct physical bases and wire up the ROS 2 ActionGraph bridge.
-* **Key File:** [`src/ur_simulation/scripts/spawn_multi_ur10e.py`](file:///Users/shivammaurya/Desktop/ros2_ws/nextup/multi_arm_ws/MultiArm-Pick-and-Place/src/ur_simulation/scripts/spawn_multi_ur10e.py)
+* **Key File:** [`src/ur_simulation/scripts/spawn_multi_ur10e.py`](src/ur_simulation/scripts/spawn_multi_ur10e.py)
 * **Technical Details:**
   * Automatically activates `omni.isaac.ros2_bridge` extension.
   * Creates global `/clock` publisher from `OnPlaybackTick`.
@@ -76,11 +76,40 @@ graph TD
 
 ---
 
+
+#### Massive Multi-Cell Spawner for NVIDIA Cosmos (`spawn_multi_cell_cosmos.py`):
+* **Scale & Grid Architecture (10 Groups / 30 Robots / 20 Cameras):**
+  - Procedurally instantiates 10 tri-arm workcells arranged in a $5 \times 2$ grid with $5.0\text{m}$ inter-cell pitch.
+  - Total assets: 30 UR10e arms, 30 Robotiq 2F-140 grippers, 10 central tables, 10 dynamic workpieces, and 20 RTX synthetic cameras.
+* **Direct USDA Asset Instancing:**
+  - Bypasses GUI stage duplication by directly referencing `src/ur10e_robotiq/ur10e_robotiq.usda` from disk.
+  - Keeps Host RAM consumption at $\sim 8.2\text{ GiB}$ (well within 16 GB system limits, preventing Linux kernel OOM kills).
+* **Physics Stabilization & Zero Jitter:**
+  - *Volumetric Crowding Resolution:* Expanded radial mounting to $R = 1.25\text{m}$ and set arms to canonical MoveIt upright standby posture (`shoulder_pan: 0, lift: -90, elbow: 90, wrist_1: -90, wrist_2: -90, wrist_3: 0`), eliminating inter-arm bounding-box collision repulsion.
+  - *Static Pedestal Stand Isolation:* Set `has_collision = False` on visual mounting cylinders, preventing micro-contact solver fighting with dynamic `base_link_inertia`.
+  - *Removed Articulation Conflicts:* Eliminated artificial `RootFixedJoint` between static pedestals and dynamic bases; base links act as clean PhysX `ArticulationRoot` anchors.
+  - *Critically Damped Position Drives:* Applied $K_p = 5000.0, K_d = 1000.0, F_{\max} = 10^6\text{ N}$ to eliminate drift and wrist spinning.
+  - *Frame-0 Angular Initialization:* Wrote `JointStateAPI:angular` values directly on frame 0 to eliminate initial gravity sag jolts.
+* **Multi-Link Tactile Perception Array:**
+  - Configured `PhysxSchema.PhysxContactReportAPI` with `threshold = 0.0` across 7 rigid bodies per robot (`wrist_3_link`, `tool0`, `robotiq_140_base_link`, `left_inner_finger`, `right_inner_finger`, `left_inner_finger_pad`, `right_inner_finger_pad`).
+  - Reports contact forces, normals, and stick-slip friction events for reinforcement learning (Isaac Lab) and foundation models.
+* **Pinhole Camera Perception Array:**
+  - 20 RTX synthetic cameras (`Camera_TopDown` at $Z=2.6\text{m}$ and `Camera_Angled` at $Y=-2.4\text{m}, Z=2.0\text{m}$ per group).
+  - Configured with pure pinhole perspective optics ($fStop = 0.0$) for blur-free RGB, depth, and segmentation ground-truth recording.
+* **PhysX Scene Unification & Dynamic GPU Sizing:**
+  - Scans and eliminates duplicate `/PhysicsScene` prims, consolidating under `/World/PhysicsScene`.
+  - Dynamically calculates aggregate pairs: `max(1048576, TOTAL_GROUPS * 350000)` ($3.5\text{M}$ pairs for 10 groups).
+  - Allocates $2\text{M}$ contact buffers, $655\text{k}$ patch buffers, and $256\text{ MB}$ GPU heap.
+* **Empirical Benchmarks (i7-14700F, 16GB RAM, RTX 5060 Ti 16GB):**
+  - 3 Groups (9 Robots): 65.25 FPS | 7.6 GiB RAM | 901 MiB VRAM.
+  - 6 Groups (18 Robots): 63.91 FPS | 7.2 GiB RAM | 888 MiB VRAM.
+  - 10 Groups (30 Robots): ~40–50 FPS | ~8.2 GiB RAM | ~1.1 GiB VRAM (100% stable).
+
 ### Step 4: Control Layer & Custom Interfaces (`multi_arm_interfaces` & `multi_arm_control`)
 * **Objective:** Action-based execution for robust pick-and-place with vision-ready interfaces and failure diagnostics.
 * **Key Files:**
-  * [`src/multi_arm_interfaces/action/PickPlace.action`](file:///Users/shivammaurya/Desktop/ros2_ws/nextup/multi_arm_ws/MultiArm-Pick-and-Place/src/multi_arm_interfaces/action/PickPlace.action)
-  * [`src/multi_arm_control/multi_arm_control/pick_place_server.py`](file:///Users/shivammaurya/Desktop/ros2_ws/nextup/multi_arm_ws/MultiArm-Pick-and-Place/src/multi_arm_control/multi_arm_control/pick_place_server.py)
+  * [`src/multi_arm_interfaces/action/PickPlace.action`](src/multi_arm_interfaces/action/PickPlace.action)
+  * [`src/multi_arm_control/multi_arm_control/pick_place_server.py`](src/multi_arm_control/multi_arm_control/pick_place_server.py)
 * **Technical Details:**
   * **Goal:** `action` ("pick"/"place"), `station_name`, `use_custom_pose`, `custom_target_pose` (dynamic 6D pose for vision/YOLOv8), `grasp_width`.
   * **Result:** `success`, `message`, `execution_time`, `final_pose`.
@@ -92,10 +121,10 @@ graph TD
 ### Step 5: Master Bringup & Orchestration (`multi_arm_bringup`)
 * **Objective:** Centralized launch scripts, calibrated physical station waypoints, and autonomous state machine.
 * **Key Files:**
-  * [`src/multi_arm_bringup/config/stations.yaml`](file:///Users/shivammaurya/Desktop/ros2_ws/nextup/multi_arm_ws/MultiArm-Pick-and-Place/src/multi_arm_bringup/config/stations.yaml)
-  * [`src/multi_arm_bringup/launch/multi_arm_isaac_sim.launch.py`](file:///Users/shivammaurya/Desktop/ros2_ws/nextup/multi_arm_ws/MultiArm-Pick-and-Place/src/multi_arm_bringup/launch/multi_arm_isaac_sim.launch.py)
-  * [`src/multi_arm_bringup/launch/pick_place_servers.launch.py`](file:///Users/shivammaurya/Desktop/ros2_ws/nextup/multi_arm_ws/MultiArm-Pick-and-Place/src/multi_arm_bringup/launch/pick_place_servers.launch.py)
-  * [`src/multi_arm_control/multi_arm_control/task_manager.py`](file:///Users/shivammaurya/Desktop/ros2_ws/nextup/multi_arm_ws/MultiArm-Pick-and-Place/src/multi_arm_control/multi_arm_control/task_manager.py)
+  * [`src/multi_arm_bringup/config/stations.yaml`](src/multi_arm_bringup/config/stations.yaml)
+  * [`src/multi_arm_bringup/launch/multi_arm_isaac_sim.launch.py`](src/multi_arm_bringup/launch/multi_arm_isaac_sim.launch.py)
+  * [`src/multi_arm_bringup/launch/pick_place_servers.launch.py`](src/multi_arm_bringup/launch/pick_place_servers.launch.py)
+  * [`src/multi_arm_control/multi_arm_control/task_manager.py`](src/multi_arm_control/multi_arm_control/task_manager.py)
 * **Calibrated Geometry:**
   * **Station A `(0.5, 0.0, 0.2)`:** Pick station for Robot 1.
   * **Station B `(0.5, 0.75, 0.2)`:** Handoff table midway between Robot 1 (`Y=0.0`) and Robot 2 (`Y=1.5`).
@@ -126,14 +155,15 @@ graph TD
 
 ## 4. Pending Future Development Roadmap
 
-The core infrastructure and sequential manipulation pipeline (**Phases 1–4**) are 100% complete. Future phases include:
+The sequential manipulation pipeline (**Phases 1–4**) and the massive multi-cell simulation foundation (**Phase 7A**) are 100% complete and empirically verified. Future roadmap phases include:
 
 1. **Phase 5: Vision & Perception Package (`perception/`)**
-   - Add RTX synthetic camera in Isaac Sim publishing `/camera/rgb/image_raw`.
+   - Stream from synthetic cameras in Isaac Sim publishing `/camera/rgb/image_raw` and `/camera/depth`.
    - Stand up `isaac_ros_yolov8` node to output dynamic 6D object poses directly into `PickPlace.action`.
 2. **Phase 6: Dynamic Multi-Arm Concurrency & Interlocks**
    - Implement spatial mutex / zone locking in `task_manager` to pipeline multiple workpieces simultaneously.
-   - Configure shared MoveIt `PlanningSceneMonitor` for dynamic obstacle avoidance.
-3. **Phase 7: Physical AI & NVIDIA Cosmos World Models**
-   - Omniverse Replicator scripts for domain randomization (lighting, textures, noise).
-   - NVIDIA Cosmos world-model generative testing for physical edge-case validation.
+   - Configure shared MoveIt `PlanningSceneMonitor` for dynamic obstacle avoidance during dual-arm buffer handoffs.
+3. **Phase 7B: Physical AI & NVIDIA Cosmos World Models (Research)**
+   - Omniverse Replicator scripts for automated domain randomization (lighting, textures, noise, table clutter).
+   - Evaluate NVIDIA Cosmos video tokenization and world models for generative edge-case prediction and physics simulation.
+   - Multi-agent dexterous manipulation policy training via Isaac Lab (RL).

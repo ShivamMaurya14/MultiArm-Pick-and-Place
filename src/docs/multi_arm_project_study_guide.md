@@ -26,7 +26,7 @@ The software architecture is designed on a **Hybrid Foundation**:
 | **P4** | **Autonomous Relay Orchestration (A → B → C → D)** | `COMPLETED` | `task_manager.py` state machine, dynamic `/workpiece_marker`, S-curve solver |
 | **P5** | **Synthetic Vision & GPU Object Detection** | `PENDING` | RTX Synthetic Cameras, `isaac_ros_yolov8`, dynamic 6D pose estimators |
 | **P6** | **Multi-Arm Concurrency & Spatial Mutex** | `PENDING` | MoveIt `PlanningSceneWorld`, collision mutex for buffer stations B & C |
-| **P7** | **Physical AI & NVIDIA Cosmos World Models** | `PENDING` | Omniverse Replicator domain randomization, Cosmos world model validation |
+| **P7** | **Physical AI & NVIDIA Cosmos Multi-Cell Spawner** | `COMPLETED (7A)` | `spawn_multi_cell_cosmos.py`, 10 groups (30 robots), direct USDA loading, multi-link tactile & pinhole camera array |
 
 ```mermaid
 graph TD
@@ -164,13 +164,44 @@ All coordinates are defined in meters in the unified global `world` frame:
 | 8  | Xacro Undefined Argument Error     | Root tag <robot name="$(arg name)"> failed without args. |
 |    |                                    | Fix: Changed root tag to <robot name="ur10e_robotiq">.   |
 +----+------------------------------------+----------------------------------------------------------+
+| 9  | PhysX Articulation Disruption &    | Root Cause: RootFixedJoint artificially created between  |
+|    | Pedestal Base Explosion            | static pedestal and dynamic base_link_inertia violated   |
+|    |                                    | PhysX articulation root semantics, exploding the stage.  |
+|    |                                    | Fix: Removed RootFixedJoint; kept pedestal as static     |
+|    |                                    | obstacle while base_link acts as fixed ArticulationRoot. |
++----+------------------------------------+----------------------------------------------------------+
+| 10 | Wrist-3 Continuous Spin & Gripper  | Root Cause: wrist_3_joint had inadequate damping and     |
+|    | Decoupling                         | robotiq_140_base_joint targeted flange instead of wrist. |
+|    |                                    | Fix: Applied DriveAPI:angular type="acceleration" with   |
+|    |                                    | stiffness=2000, damping=200; retargeted gripper to wrist.|
++----+------------------------------------+----------------------------------------------------------+
+| 11 | Host Memory OOM Crash on 16GB RAM  | Root Cause: Spawning 10-30 groups (30-90 robots, 20-60   |
+|    | & PhysX Aggregate Buffer Sizing    | RTX cameras) consumed >18-36 GB Host RAM, triggering     |
+|    |                                    | Linux kernel OOM killer (SIGKILL on isaac-sim.sh).       |
+|    |                                    | Fix: Replaced URDF stage cloning with direct USDA asset  |
+|    |                                    | reference instancing, tuned aggregate pairs to 3.5M, and |
+|    |                                    | verified 6-group run at 63.9 FPS (7.2GB RAM used) and    |
+|    |                                    | scaled cleanly to 10 groups (30 robots in 5x2 grid).     |
++----+------------------------------------+----------------------------------------------------------+
+| 12 | Volumetric Crowding & Inter-Arm    | Root Cause: Low reaching angles (-100 deg lift, 85 deg   |
+|    | Collision Fighting                 | elbow) crowded all 3 arms into the 0.45m center table,   |
+|    |                                    | causing collision impulses that fought position drives.  |
+|    |                                    | Fix: Switched to canonical MoveIt standby posture        |
+|    |                                    | (lift: -90, elbow: 90, wrist_1: -90) with R=1.25m radial |
+|    |                                    | clearance, keeping arms elevated and collision-free.     |
++----+------------------------------------+----------------------------------------------------------+
+| 13 | Pedestal Base Contact Impulses     | Root Cause: Collision mesh on static pedestal cylinders  |
+|    |                                    | fought with dynamic base_link_inertia at Z=0.20m.        |
+|    |                                    | Fix: Disabled collision on visual pedestal stands, as    |
+|    |                                    | base_link is already rigidly fixed by ArticulationRoot.  |
++----+------------------------------------+----------------------------------------------------------+
 ```
 
 ---
 
 ## 5. Implementation Roadmap Status (Progress vs. Pending)
 
-As defined in the project master implementation plan ([`multi_arm_ur10e_implementation_plan.md`](file:///Users/shivammaurya/Desktop/ros2_ws/nextup/multi_arm_ws/MultiArm-Pick-and-Place/src/docs/multi_arm_ur10e_implementation_plan.md)):
+As defined in the project master implementation plan ([`multi_arm_ur10e_implementation_plan.md`](multi_arm_ur10e_implementation_plan.md)):
 
 ### ✅ COMPLETED PHASES
 
@@ -198,10 +229,16 @@ As defined in the project master implementation plan ([`multi_arm_ur10e_implemen
 * [ ] **Phase 6 — Multi-Arm Concurrency & Spatial Mutex Interlocks:**
   * Implement shared `PlanningSceneWorld` in MoveIt 2 for dynamic collision avoidance between moving robot arms.
   * Add spatial mutex volume reservation around intermediate buffer tables (Stations B and C) allowing multiple workpieces to traverse the workcell concurrently.
-* [ ] **Phase 7 — Physical AI & NVIDIA Cosmos World Foundation Models:**
+* [x] **Phase 7A — Multi-Cell Procedural Spawner for Cosmos & Physical AI (COMPLETED):**
+  * Developed `src/ur_simulation/scripts/spawn_multi_cell_cosmos.py` with direct USDA disk loading.
+  * Physics stabilization: eliminated `RootFixedJoint` articulation conflict, added critically damped acceleration drives (`stiffness=5000, damping=1000`), canonical MoveIt standby postures, and visual-only pedestals.
+  * Scaled to **10 Groups (30 UR10e robots, 20 RTX cameras)** in a balanced $5 	imes 2$ grid on 16 GB RAM + RTX 5060 Ti workstation.
+  * Verified multi-link tactile contact sensing across 7 end-effector links (`wrist_3_link`, `tool0`, `robotiq_140_base_link`, and grasp pads `left_inner_finger_pad`, `right_inner_finger_pad`).
+  * Verified pinhole dual-camera array (`Camera_TopDown`, `Camera_Angled`) for Omniverse Replicator dataset logging.
+* [ ] **Phase 7B — Physical AI Training & NVIDIA Cosmos World Models:**
   * Domain randomization with Omniverse Replicator (lighting, textures, camera noise).
-  * Video/physics edge-case validation using NVIDIA Cosmos foundation models.
-  * GPU parallel reinforcement learning policy training via Isaac Lab.
+  * Synthetic dataset generation for video tokenization and Cosmos foundation model evaluation.
+  * Multi-agent reinforcement learning policy training via Isaac Lab.
 
 ---
 
@@ -232,13 +269,13 @@ ros2 run multi_arm_control task_manager
 # Step A: Export URDF (in ROS 2 terminal)
 source /opt/ros/jazzy/setup.bash
 source install/setup.bash
-xacro src/multi_arm_description/urdf/ur10e_robotiq.urdf.xacro > /tmp/ur10e_robotiq.urdf
+xacro src/multi_arm_description/urdf/ur10e_robotiq.urdf.xacro > src/multi_arm_description/urdf/ur10e_robotiq.urdf
 ```
 
 **Step B: In Isaac Sim GUI (URDF Importer Settings):**
 1. Navigate to **Isaac Utils → Workflows → URDF Importer** *(or **Tools → Robotics → URDF Importer**)*.
 2. Select **`Import`** mode with:
-   - **Input File:** `/tmp/ur10e_robotiq.urdf`
+   - **Input File:** `.../src/multi_arm_description/urdf/ur10e_robotiq.urdf`
    - **Target Prim Path / USD Output:** `/World/UR10e`
    - **Fix Base Link:** `Checked` ✅ | **Drive Type:** `Position`
    - **Colliders:** `Convex Decomposition` | **Self Collision:** `Unchecked` ⬜
@@ -247,7 +284,7 @@ xacro src/multi_arm_description/urdf/ur10e_robotiq.urdf.xacro > /tmp/ur10e_robot
 
 **Step C: 🚀 Step to Spawn All 3 Robots & Full Workcell:**
 1. Open **Window → Script Editor**.
-2. Open [`src/ur_simulation/scripts/spawn_multi_ur10e.py`](file:///Users/shivammaurya/Desktop/ros2_ws/nextup/multi_arm_ws/MultiArm-Pick-and-Place/src/ur_simulation/scripts/spawn_multi_ur10e.py) and click **Run**.
+2. Open [`src/ur_simulation/scripts/spawn_multi_ur10e.py`](src/ur_simulation/scripts/spawn_multi_ur10e.py) and click **Run**.
 3. Press **PLAY (▶)** in Isaac Sim.
 
 ```bash
@@ -269,4 +306,13 @@ ros2 launch multi_arm_bringup multi_arm_gazebo.launch.py
 source /opt/ros/jazzy/setup.bash
 source install/setup.bash
 ros2 run multi_arm_control task_manager --ros-args -p use_sim_time:=true
+```
+
+### 5. Run NVIDIA Cosmos Multi-Cell Spawner (GPU Parallel Simulation)
+```bash
+# 1. Launch Isaac Sim with clean stage (File -> New)
+# 2. Open Window -> Script Editor
+# 3. Open src/ur_simulation/scripts/spawn_multi_cell_cosmos.py
+# 4. Click Run (Configured with 10 groups, 30 UR10e robots, 20 RTX cameras in 5x2 grid)
+# 5. Press PLAY (▶)
 ```

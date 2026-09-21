@@ -15,7 +15,7 @@ This playbook is designed for **isolated, unit-by-unit testing**. Test and verif
 | **P4** | **Autonomous Relay Orchestration (A → B → C → D)** | `COMPLETED` | `task_manager.py` state machine, dynamic `/workpiece_marker`, S-curve solver |
 | **P5** | **Synthetic Vision & GPU Object Detection** | `PENDING` | RTX Synthetic Cameras, `isaac_ros_yolov8`, dynamic 6D pose estimators |
 | **P6** | **Multi-Arm Concurrency & Spatial Mutex** | `PENDING` | MoveIt `PlanningSceneWorld`, collision mutex for buffer stations B & C |
-| **P7** | **Physical AI & NVIDIA Cosmos World Models** | `PENDING` | Omniverse Replicator domain randomization, Cosmos world model validation |
+| **P7** | **Physical AI & NVIDIA Cosmos Multi-Cell Spawner** | `COMPLETED (7A)` | `spawn_multi_cell_cosmos.py`, 10 groups (30 robots), direct USDA loading, multi-link tactile & pinhole camera array |
 
 ---
 
@@ -176,19 +176,28 @@ ros2 launch robot3_moveit_config ur_moveit.launch.py
 **Goal:** Verify that Isaac Sim imports the URDF, duplicates the three robots at distinct base coordinates, and publishes namespaced ROS 2 joint states and clocks.
 
 ### Step-by-Step Execution:
-1. **Export the URDF:**
+1. **Export the Standalone URDF directly into `src/`:**
    ```bash
-   xacro src/multi_arm_description/urdf/ur10e_robotiq.urdf.xacro > /tmp/ur10e_robotiq.urdf
+   source /opt/ros/jazzy/setup.bash
+   source install/setup.bash
+   xacro src/multi_arm_description/urdf/ur10e_robotiq.urdf.xacro > src/multi_arm_description/urdf/ur10e_robotiq.urdf
    ```
-2. **Import into Isaac Sim:**
-   - Open Isaac Sim (version 4.x / 4.5+).
-   - Menu: **Isaac Utils → Workflows → URDF Importer**.
-   - Input file: `/tmp/ur10e_robotiq.urdf`
-   - Settings: `Fix Base Link = True`, `Drive Type = Position`.
-   - Click **Import** (creates `/World/ur10e_robotiq` or `/World/UR10e`).
+2. **Import into Isaac Sim (Exact Importer Settings):**
+   - Open Isaac Sim (version 4.x / 5.x / 6.0+).
+   - Menu: **Isaac Utils → Workflows → URDF Importer** (or **Tools → Robotics → URDF Importer**).
+   - **Input file:** `/home/arvr/ros2_ws/MultiArm-Pick-and-Place/src/multi_arm_description/urdf/ur10e_robotiq.urdf`
+   - **Target Prim Path:** `/World/UR10e`
+   - **Fix Base Link:** `Checked` ✅ (Essential to anchor root to world)
+   - **Drive Type:** `Position`
+   - **Default Drive Strength (Stiffness):** `5000.0` (Arm) / `1000.0` (Gripper)
+   - **Default Damping:** `1000.0` (Arm) / `50.0` (Gripper)
+   - **Colliders:** `Convex Decomposition`
+   - **Self Collision:** `Unchecked` ⬜ (Avoids wrist/base mesh intersection locking)
+   - **ROS Package Search Paths:** Add `/home/arvr/ros2_ws/MultiArm-Pick-and-Place/src`
+   - Click **Import**.
 3. **Execute the Multi-Arm Spawner:**
    - In Isaac Sim menu: **Window → Script Editor**.
-   - Open and run [`src/ur_simulation/scripts/spawn_multi_ur10e.py`](file:///Users/shivammaurya/Desktop/ros2_ws/nextup/multi_arm_ws/MultiArm-Pick-and-Place/src/ur_simulation/scripts/spawn_multi_ur10e.py).
+   - Open and run [`src/ur_simulation/scripts/spawn_multi_ur10e.py`](src/ur_simulation/scripts/spawn_multi_ur10e.py).
    - *Result:* Three robot prims appear at:
      - Robot 1: `(0.0, 0.0, 0.0)`
      - Robot 2: `(0.0, 1.6, 0.0)`
@@ -352,3 +361,28 @@ Once Phases 0–6 pass successfully, proceed to the remaining roadmap phases:
 | Kinematic planning fails at Station B/C | Station is outside arm reach | Verify `stations.yaml`: Station B is `(0.70, 0.80, 0.25)` and Station C is `(0.70, 2.40, 0.25)`. |
 | RViz shows white/error links | `robot_state_publisher` not publishing `/robot_description` or `/tf` | Launch using the provided launch files (`view_workcell.launch.py` or `multi_arm_simulation.launch.py`). |
 | Gripper fingers pass through workpiece | PhysX collision meshes not set | In Isaac Sim, select workpiece and gripper fingertips → Add **Physics → Rigid Body with Colliders**. |
+
+---
+
+## 8. Testing NVIDIA Cosmos Multi-Cell Spawner (30 Robots / 20 Cameras)
+
+### Step 8.1: Run the Procedural Multi-Cell Spawner in Isaac Sim
+1. Open a clean stage in Isaac Sim (**File → New**).
+2. Open **Window → Script Editor**.
+3. Open [`src/ur_simulation/scripts/spawn_multi_cell_cosmos.py`](../ur_simulation/scripts/spawn_multi_cell_cosmos.py).
+4. Click **Run** (or `Ctrl + Enter`).
+5. Verify console output:
+   ```
+   [Physics] Configured primary PhysicsScene at '/World/PhysicsScene' (AggregatePairs=3500000).
+   [Cosmos Spawner] Loading clean USD asset from: .../ur10e_robotiq.usda
+   [Cosmos Spawner] Spawning 10 triangular groups (Total: 30 UR10e robots, 20 RTX Cameras)...
+   🚀 10 TRIANGULAR TRI-ARM GROUPS SPAWNED SUCCESSFULLY IN ISAAC SIM!
+   ```
+6. Press **PLAY (▶)**.
+
+### Step 8.2: Verification Checklist
+* [ ] **Posture Stability:** All 30 robots maintain their upright standby $L$-pose with zero flailing, zero sagging, and zero jitter.
+* [ ] **Zero Warnings:** No PhysX aggregate pair buffer warnings appear.
+* [ ] **Workpiece Staging:** All 10 green cubes rest stably on their respective center platforms.
+* [ ] **Camera Feeds:** Open viewport menu **Cameras** and select `/World/Cosmos_Grid/Group_01/Camera_TopDown` or `Camera_Angled` to verify sharp pinhole rendering.
+* [ ] **Contact Reporting:** Tactile contact reports are active on all wrists and fingertip pads.

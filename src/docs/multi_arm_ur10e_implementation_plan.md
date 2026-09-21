@@ -222,6 +222,20 @@ At least 2 workpieces simultaneously traversing the cell without deadlocks or ph
 
 ### Phase 7 — Physical AI, Sim-to-Real & NVIDIA Cosmos Foundation Models
 
+#### ✅ Phase 7A: Massive Multi-Cell Procedural Spawner (COMPLETED)
+- **Script:** [`src/ur_simulation/scripts/spawn_multi_cell_cosmos.py`](../ur_simulation/scripts/spawn_multi_cell_cosmos.py)
+- **Direct USDA Asset Instancing:** Loads `src/ur10e_robotiq/ur10e_robotiq.usda` directly from disk without manual URDF stage cloning.
+- **Scale:** **10 Groups / 30 UR10e Manipulators / 20 RTX Synthetic Cameras** in a $5 \times 2$ grid.
+- **Physics Stabilization:**
+  - Critically damped acceleration drives (`stiffness=5000, damping=1000, maxForce=1e6`) on all joints.
+  - JointStateAPI initialization ensuring frame-0 ready posture without dynamic startup jerks.
+  - Canonical MoveIt standby pose (`shoulder_pan: 0, lift: -90, elbow: 90, wrist_1: -90, wrist_2: -90, wrist_3: 0`) with $1.25\text{m}$ radial clearance preventing volumetric crowding.
+  - Non-colliding visual pedestals eliminating mounting interface micro-impulses.
+- **Perception Array:** Dual pinhole cameras (`Camera_TopDown`, `Camera_Angled`) with $fStop=0.0$.
+- **Tactile Sensors:** PhysX ContactReportAPI on all 7 wrist and silicone finger pad links.
+
+#### ⏳ Phase 7B: Physical AI Training & Cosmos Dataset Pipeline (PENDING)
+
 **Goal:** Leverage Isaac Sim and Omniverse as a platform for Physical AI, synthetic data generation, and foundation world-model experiments.
 
 #### Physical AI Research Tracks
@@ -245,7 +259,7 @@ At least 2 workpieces simultaneously traversing the cell without deadlocks or ph
 | **P4** | **Autonomous Relay Orchestration (A → B → C → D)** | `COMPLETED` | `task_manager.py` state machine, dynamic `/workpiece_marker`, S-curve solver |
 | **P5** | **Synthetic Vision & GPU Object Detection** | `PENDING` | RTX Synthetic Cameras, `isaac_ros_yolov8`, dynamic 6D pose estimators |
 | **P6** | **Multi-Arm Concurrency & Spatial Mutex** | `PENDING` | MoveIt `PlanningSceneWorld`, collision mutex for buffer stations B & C |
-| **P7** | **Physical AI & NVIDIA Cosmos World Models** | `PENDING` | Omniverse Replicator domain randomization, Cosmos world model validation |
+| **P7** | **Physical AI & NVIDIA Cosmos Multi-Cell Spawner** | `COMPLETED (7A)` | `spawn_multi_cell_cosmos.py`, 10 groups (30 robots), direct USDA loading, multi-link tactile & pinhole camera array |
 
 ---
 
@@ -273,7 +287,13 @@ At least 2 workpieces simultaneously traversing the cell without deadlocks or ph
   - [ ] Implement spatial mutex / zone locking in `task_manager`
   - [ ] Configure shared MoveIt planning scenes for dynamic collision prevention
   - [ ] Multi-object pipeline load testing
-- [ ] **Phase 7 — Physical AI & NVIDIA Cosmos Experiments**
-  - [ ] Domain randomization with Omniverse Replicator
-  - [ ] Evaluate NVIDIA Cosmos physics/video prediction on manipulation sequences
-  - [ ] Sim-to-Real policy validation
+- [x] **Phase 7A — Massive Multi-Cell Spawner & Physics Stabilization (10 Groups / 30 Robots)**
+  - [x] Develop `spawn_multi_cell_cosmos.py` with direct USDA referencing
+  - [x] Eliminate jitter with MoveIt standby posture, R=1.25m clearance, and non-colliding pedestals
+  - [x] Instrument 7 rigid bodies per robot with PhysX contact reporting
+  - [x] Deploy 20 pinhole RTX synthetic cameras (fStop=0.0) in 5x2 grid
+  - [x] Dynamically scale PhysX aggregate pairs to 3.5M and unfreeze dual physics scenes
+- [ ] **Phase 7B — Physical AI Training & NVIDIA Cosmos Pipeline**
+  - [ ] Domain randomization with Omniverse Replicator (lighting, textures, noise)
+  - [ ] Evaluate NVIDIA Cosmos video tokenization and generative physics prediction
+  - [ ] Multi-agent policy training via Isaac Lab (RL)
